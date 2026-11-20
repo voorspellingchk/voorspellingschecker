@@ -218,12 +218,12 @@ function nextAfterCheck(p,date,verdict){
 function tweetFor(p){
   const cs=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
   if(['correct','partial','incorrect'].includes(p.verdict)&&cs.length)return verdictTweet(p,{...cs[0],verdict:p.verdict});
-  return `🔮 ${p.who}${p.role?` (${p.role})`:''} voorspelde${p.outlet?` in ${p.outlet}`:''}${p.saidOn?` op ${fmt(p.saidOn)}`:''}: ${p.claim}\n\n${p.nextCheck?`📅 Wij checken dit op ${fmt(p.nextCheck)}.\n`:''}#Voorspellingschecker`;
+  return `🔮 ${p.who}${p.role?` (${p.role})`:''} voorspelde${p.outlet?` in ${p.outlet}`:''}${p.saidOn?` op ${fmt(p.saidOn)}`:''}: ${p.claim}\n\n${p.nextCheck?`📅 Wij checken dit op ${fmt(p.nextCheck)}.`:''}`.trim();
 }
 function verdictTweet(p,c){
   const yr=p.saidOn?` (${p.saidOn.slice(0,4)})`:'';
   const val=!c.note&&c.value!=null&&c.value!==''?`Stand ${fmt(c.date)}: ${c.value}${p.metric?.unit?' '+p.metric.unit:''}`:'';
-  const mk=cl=>`${EMO[c.verdict]}\n\n${p.who}${yr}: ${cl}\n\n${c.note||val}${c.url?'\n'+c.url:''}\n\n#Voorspellingschecker`.replace(/\n{3,}/g,'\n\n').trim();
+  const mk=cl=>`${EMO[c.verdict]}\n\n${p.who}${yr}: ${cl}\n\n${c.note||val}${c.url?'\n'+c.url:''}`.replace(/\n{3,}/g,'\n\n').trim();
   let t=mk(p.claim);
   if(t.length>MAXT){const cut=t.length-MAXT+1;t=mk(p.claim.slice(0,Math.max(40,p.claim.length-cut)).replace(/\s+\S*$/,'')+'…')}
   return t;
@@ -439,7 +439,7 @@ async function scan(){
     const res=await sample.json(`Je bent redacteur van het X-account "Voorspellingschecker". Zoek in de tekst hieronder uitspraken die als TOETSBARE voorspelling over de toekomst kunnen gelden, gedaan door bekende of gezaghebbende personen (wetenschappers, columnisten, politici, bestuurders, topmensen uit bedrijfsleven of instituten, opiniemakers). Sla vage verwachtingen, beleidsvoornemens zonder toetsbare uitkomst en uitspraken van anonieme personen over.
 Bron: ${JSON.stringify(meta)}. Datum van vandaag: ${today()}.
 Geef ALLEEN een JSON-array terug, leeg als er niets is. Per voorspelling:
-{"who":"naam","role":"functie/kwalificatie kort","quote":"letterlijke kernzin uit de tekst, max 25 woorden","claim":"de voorspelling als één heldere, toetsbare zin in het Nederlands, met wat/wanneer","topic":"onderwerp in 1-3 woorden","saidOn":"YYYY-MM-DD","targetDate":"YYYY-MM-DD of null (als de spreker een jaar noemt: 31 december van dat jaar; 'binnen 5 jaar' = saidOn+5 jaar)","metric":{"label":"meetbare grootheid","unit":"eenheid","baseline":getal of null,"target":getal of null} of null als er geen meetbare grootheid is,"tweet":"tweet in het Nederlands, max 250 tekens, neutraal van toon, met naam, de voorspelling en het woord #Voorspellingschecker"}
+{"who":"naam","role":"functie/kwalificatie kort","quote":"letterlijke kernzin uit de tekst, max 25 woorden","claim":"de voorspelling als één heldere, toetsbare zin in het Nederlands, met wat/wanneer","topic":"onderwerp in 1-3 woorden","saidOn":"YYYY-MM-DD","targetDate":"YYYY-MM-DD of null (als de spreker een jaar noemt: 31 december van dat jaar; 'binnen 5 jaar' = saidOn+5 jaar)","metric":{"label":"meetbare grootheid","unit":"eenheid","baseline":getal of null,"target":getal of null} of null als er geen meetbare grootheid is,"tweet":"tweet in het Nederlands, max 250 tekens, neutraal van toon, begint met 🔮, met naam en de voorspelling, zonder hashtags"}
 TEKST:
 ${text.slice(0,60000)}`,{modelTier:'complex'});
     const arr=Array.isArray(res)?res:[];
