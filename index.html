@@ -19,17 +19,21 @@
 :root{color-scheme:dark;
 --yel:#ffd23f;--yel-soft:#ffd23f22;--deep:#0b1430;
 --bg:#0e1a3d;--paper:#15244f;--raised:#1b2d5f;--ink:#eef1fa;--mute:#a7b1d0;--line:#28396f;--line2:#344886;
---ok:#3ed68c;--no:#ff6b6b;--part:#ff9f43;--early:#8fb3ff;--open:#8a93b5;--acc:#ffd23f;--blue:#4c6fff}
+--ok:#3ed68c;--no:#ff6b6b;--part:#ff9f43;--early:#8fb3ff;--open:#8a93b5;--acc:#ffd23f;--blue:#4c6fff;
+--yel-ink:#ffd23f;--on-yel:#0b1430;--navbg:#0b1430ee;--shadow:#050b2266;--glow:#2a4bd155}
+:root[data-theme=light]{color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif;overflow-x:clip}
 h1,h2,h3{font-family:"Space Grotesk",system-ui,sans-serif;line-height:1.05;margin:0;text-wrap:balance}
 .band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
 .wrap{max-width:1240px;margin:0 auto}
-header.band{background:radial-gradient(1200px 420px at 85% -10%,#2a4bd155,transparent 60%),var(--deep);color:var(--ink);position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+header.band{background:radial-gradient(1200px 420px at 85% -10%,var(--glow),transparent 60%),var(--deep);color:var(--ink);position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
 header h1{font-size:clamp(36px,6vw,64px);font-weight:700;letter-spacing:-.03em}
-header h1 .sticker{display:inline-block;background:var(--yel);color:var(--deep);font-size:.3em;letter-spacing:0;padding:6px 10px;border-radius:6px;transform:rotate(-4deg) translateY(-.9em);margin-left:10px;vertical-align:middle}
+header h1 .sticker{display:inline-block;background:var(--yel);color:var(--on-yel);font-size:.3em;letter-spacing:0;padding:6px 10px;border-radius:6px;transform:rotate(-4deg) translateY(-.9em);margin-left:10px;vertical-align:middle}
 header p{margin:12px 0 0;color:var(--mute);max-width:62ch;font-size:17px}
-header a{color:var(--yel);font-weight:600}
+header a{color:var(--yel-ink);font-weight:600}
+.themebtn{position:absolute;top:14px;right:max(5vw,16px);z-index:2;min-height:40px;width:40px;padding:0;justify-content:center;border-radius:99px;background:var(--paper);border:1px solid var(--line2);color:var(--ink);font-size:18px}.themebtn:hover{border-color:var(--yel)}
 .board{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(20px,4vw,48px);margin-top:28px;position:relative;z-index:1}
 .bar{display:flex;height:40px;border-radius:10px;overflow:hidden;background:var(--paper);gap:3px}
 .bar span{display:block;height:100%;transition:width .5s}
@@ -37,30 +41,30 @@ header a{color:var(--yel);font-weight:600}
 .legend b{font:700 22px "Space Grotesk",sans-serif;color:var(--ink);margin-right:4px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
 .due{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
-.due h3{font-size:15px;font-weight:700;color:var(--yel);margin-bottom:6px}
+.due h3{font-size:15px;font-weight:700;color:var(--yel-ink);margin-bottom:6px}
 .due ol{list-style:none;margin:0;padding:0}
 .due li{display:grid;grid-template-columns:6.5em minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer;color:var(--ink)}
-.due li:hover{color:var(--yel)}
+.due li:hover{color:var(--yel-ink)}
 .due time{font:700 14px "Space Grotesk",sans-serif;white-space:nowrap;color:var(--ink)}.due .late{color:var(--no)}
-nav{position:sticky;top:0;z-index:5;background:#0b1430ee;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav{position:sticky;top:0;z-index:5;background:var(--navbg);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 nav .wrap{display:flex;gap:6px;padding:10px max(5vw,16px);overflow-x:auto}
 nav a{flex:none;padding:8px 16px;color:var(--mute);text-decoration:none;font:700 15px "Space Grotesk",sans-serif;border-radius:99px}
 nav a:hover{color:var(--ink);background:var(--paper)}
-nav a[aria-current]{background:var(--yel);color:var(--deep)}
+nav a[aria-current]{background:var(--yel);color:var(--on-yel)}
 main .band{padding-top:24px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
 input,textarea,select{font:16px "IBM Plex Sans",sans-serif;color:var(--ink);background:var(--paper);border:1px solid var(--line2);border-radius:10px;background:var(--bg);padding:10px 12px;width:100%}
 textarea{min-height:120px;resize:vertical}
 input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
-button,.btn{font:700 15px "Space Grotesk",sans-serif;min-height:44px;padding:0 18px;border-radius:99px;border:2px solid var(--yel);background:var(--yel);color:var(--deep);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+button,.btn{font:700 15px "Space Grotesk",sans-serif;min-height:44px;padding:0 18px;border-radius:99px;border:2px solid var(--yel);background:var(--yel);color:var(--on-yel);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 button.ghost,.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
-button.ghost:hover,.btn.ghost:hover{border-color:var(--yel);color:var(--yel)}
+button.ghost:hover,.btn.ghost:hover{border-color:var(--yel-ink);color:var(--yel-ink)}
 button:not(.chip):not(.ghost):hover,.btn:not(.ghost):hover{filter:brightness(1.08)}
 button:disabled{opacity:.45;cursor:default}
 .chip{min-height:36px;padding:0 12px;font-size:14px;border-radius:99px;background:transparent;color:var(--ink);border-color:var(--line)}
-.chip{border-width:1px;border-color:var(--line2)}.chip:hover{border-color:var(--yel)}.chip[aria-pressed=true]{background:var(--yel);color:var(--deep);border-color:var(--yel)}
+.chip{border-width:1px;border-color:var(--line2)}.chip:hover{border-color:var(--yel-ink)}.chip[aria-pressed=true]{background:var(--yel);color:var(--on-yel);border-color:var(--yel-ink)}
 #q{max-width:300px;flex:1 1 200px}
-.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px #050b2266;padding:18px 20px;margin-bottom:12px;position:relative}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px var(--shadow);padding:18px 20px;margin-bottom:12px;position:relative}
 .card .who{font:700 17px "Space Grotesk",sans-serif}.card .role{color:var(--mute);font-size:14px}
 .claim{font-size:18px;margin:8px 0 6px;max-width:68ch}
 .meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--mute)}
@@ -84,18 +88,18 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertic
 .cal{padding:0;margin:0}.cal time{font:700 16px "Space Grotesk",sans-serif;white-space:nowrap}
 .tag{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .empty{padding:36px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:8px}
-.srcbox{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:var(--deep);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}.srcbox:hover{border-color:var(--yel);color:var(--yel)}td .srcbox{display:flex;width:max-content}
+.srcbox{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:var(--deep);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}.srcbox:hover{border-color:var(--yel-ink);color:var(--yel-ink)}td .srcbox{display:flex;width:max-content}
 .note{font-size:14px;color:var(--mute);max-width:70ch}
 .cand{border-left:4px solid var(--acc)}
 .dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px}
-.tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px #050b2266;transition:transform .15s,box-shadow .15s;padding:18px 20px;position:relative}
-.tile[data-open]{cursor:pointer}.tile[data-open]:hover{transform:translateY(-2px);border-color:var(--yel)}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px var(--shadow);transition:transform .15s,box-shadow .15s;padding:18px 20px;position:relative}
+.tile[data-open]{cursor:pointer}.tile[data-open]:hover{transform:translateY(-2px);border-color:var(--yel-ink)}
 .tile a{color:inherit}
-.tile>h3{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--yel);margin:0 0 12px}.tile>h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--yel)}
+.tile>h3{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--yel-ink);margin:0 0 12px}.tile>h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--yel)}
 .tile .claim{font-size:17px}.tile .head{padding-right:120px}
 .tile.wide{grid-column:1/-1}
 .kicker{font:700 15px "Space Grotesk",sans-serif;margin:0 0 6px}
-.pill{display:inline-block;font:700 13px "Space Grotesk",sans-serif;padding:4px 10px;border-radius:99px;color:var(--deep);white-space:nowrap}
+.pill{display:inline-block;font:700 13px "Space Grotesk",sans-serif;padding:4px 10px;border-radius:99px;color:var(--on-yel);white-space:nowrap}
 .mini{list-style:none;margin:10px 0 0;padding:0;max-height:420px;overflow:auto}
 .mini li{display:grid;grid-template-columns:6.5em 5.5em minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
 .mini li:hover{background:var(--bg)}
@@ -121,9 +125,10 @@ header .cta{position:relative;z-index:1;margin-top:18px}
 @media(max-width:700px){.board{grid-template-columns:minmax(0,1fr)}.card .head{padding-right:0}.stamp{position:static;display:inline-block;margin-bottom:8px}.cal li{grid-template-columns:5em minmax(0,1fr)}.cal li .tag{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.bar span{transition:none}}
 </style>
+<script>try{const t=localStorage.getItem('vc-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body>
-<header class="band"><div class="wrap">
+<header class="band"><button class="themebtn" id="themebtn" type="button" aria-label="Wissel tussen licht en donker"></button><div class="wrap">
   <h1>Voorspellingschecker<span class="sticker">checkt alles</span></h1>
   <p>Checkt alle voorspellingen. Voorspelling gezien? Stuur een tip naar De Voorspellingschecker.</p>
   <div class="row pubonly cta"><a class="btn tipbtn" target="_blank" rel="noopener">Voorspelling insturen</a><a class="btn ghost" href="https://x.com/voorspellingchk" target="_blank" rel="noopener">Volg @voorspellingchk</a></div>
@@ -342,7 +347,7 @@ function chart(p,box){
     s.innerHTML=g};
   draw();new ResizeObserver(draw).observe(s);box.closest('details')?.addEventListener('toggle',draw);
 }
-const chartLegend=p=>`<div class="legend" style="color:var(--mute);margin-top:8px"><span><span class="dot" style="background:var(--ink)"></span>gemeten</span><span><span class="dot" style="background:var(--yel)"></span>moment van voorspellen (witte lijn)</span><span><span class="dot" style="background:transparent;border:2px solid var(--yel)"></span>voorspelde route${p.metric&&p.metric.routes&&p.metric.routes.length>1?"s":""} naar de doelwaarde</span><span><span class="dot" style="background:var(--deep);border:1px solid var(--line2)"></span>verleden</span>${trendOf(chartPts(p))?'<span><span class="dot" style="background:var(--early)"></span>trendlijn (alle metingen)</span>':''}</div>`;
+const chartLegend=p=>`<div class="legend" style="color:var(--mute);margin-top:8px"><span><span class="dot" style="background:var(--ink)"></span>gemeten</span><span><span class="dot" style="background:var(--yel)"></span>moment van voorspellen (verticale lijn)</span><span><span class="dot" style="background:transparent;border:2px solid var(--yel)"></span>voorspelde route${p.metric&&p.metric.routes&&p.metric.routes.length>1?"s":""} naar de doelwaarde</span><span><span class="dot" style="background:var(--deep);border:1px solid var(--line2)"></span>verleden</span>${trendOf(chartPts(p))?'<span><span class="dot" style="background:var(--early)"></span>trendlijn (alle metingen)</span>':''}</div>`;
 
 /* ---------- overview ---------- */
 const FINAL=['correct','partial','incorrect'];
@@ -530,6 +535,12 @@ document.addEventListener('input',e=>{const t=e.target;
   if(t.dataset.e&&t.dataset.f==='tweet'){const c=document.querySelector(`[data-cnt="${CSS.escape(t.dataset.e)}"]`);c.textContent=t.value.length+'/'+MAXT;c.classList.toggle('over',t.value.length>MAXT)}
 });
 
+/* ---------- licht/donker ---------- */
+const themeBtn=$('#themebtn'),mqLight=matchMedia('(prefers-color-scheme: light)');
+const curTheme=()=>document.documentElement.dataset.theme||(mqLight.matches?'light':'dark');
+const paintTheme=()=>{const l=curTheme()==='light';themeBtn.textContent=l?'🌙':'☀️';themeBtn.title=l?'Donkere weergave':'Lichte weergave'};
+themeBtn.onclick=()=>{const t=curTheme()==='light'?'dark':'light';document.documentElement.dataset.theme=t;try{localStorage.setItem('vc-theme',t)}catch(e){}paintTheme()};
+mqLight.addEventListener('change',paintTheme);paintTheme();
 board();filters();list();
 const timer=setTimeout(()=>{if(!items.length)$('#list').innerHTML='<div class="empty">De database is nog niet bereikbaar. Probeer het later opnieuw.</div>'},10000);
 const onData=()=>{clearTimeout(timer);const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
