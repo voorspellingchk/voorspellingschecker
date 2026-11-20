@@ -84,6 +84,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertic
 .cal{padding:0;margin:0}.cal time{font:700 16px "Space Grotesk",sans-serif;white-space:nowrap}
 .tag{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .empty{padding:36px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:8px}
+.srcbox{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:var(--deep);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}.srcbox:hover{border-color:var(--yel);color:var(--yel)}td .srcbox{display:flex;width:max-content}
 .note{font-size:14px;color:var(--mute);max-width:70ch}
 .cand{border-left:4px solid var(--acc)}
 .dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px}
@@ -157,7 +158,7 @@ header .cta{position:relative;z-index:1;margin-top:18px}
   <div class="verdicts">
     <div><span class="stamp v-correct">Correct</span><p>De voorspelde uitkomst is uitgekomen. Afwijkingen van 10 à 20% rekenen we niet fout.</p></div>
     <div><span class="stamp v-partial">Deels</span><p>De kern klopt, maar een deel niet: bijvoorbeeld de richting wel, de omvang of het moment niet.</p></div>
-    <div><span class="stamp v-incorrect">Niet correct</span><p>De uitkomst wijkt duidelijk af van wat werd voorspeld.</p></div>
+    <div><span class="stamp v-incorrect">Onjuist</span><p>De uitkomst wijkt duidelijk af van wat werd voorspeld.</p></div>
     <div><span class="stamp v-tooearly">Te vroeg</span><p>De doeldatum is nog niet bereikt, of de cijfers zijn nog niet bekend.</p></div>
   </div>
   <p>Noemt iemand meerdere scenario's, dan toetsen we het scenario dat als meest waarschijnlijk werd gepresenteerd. Een voorspelling is geen oordeel over de persoon: ook goede experts zitten er soms naast, en dat is precies wat het checken interessant maakt.</p>
@@ -187,9 +188,9 @@ const $=s=>document.querySelector(s);
 const PUB=window.VC_PUBLIC||null;
 if(PUB){document.body.classList.add('pub');document.querySelectorAll('.tipbtn').forEach(a=>{if(PUB.tipUrl)a.href=PUB.tipUrl;else a.remove()})}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const V={open:['Open','Nog niet gecheckt'],tooearly:['Te vroeg','Te vroeg om te zeggen'],correct:['Correct','Correcte voorspelling'],partial:['Deels','Deels correct'],incorrect:['Niet correct','Niet correcte voorspelling']};
+const V={open:['Open','Nog niet gecheckt'],tooearly:['Te vroeg','Te vroeg om te zeggen'],correct:['Correct','Correcte voorspelling'],partial:['Deels','Deels correct'],incorrect:['Onjuist','Onjuiste voorspelling']};
 const VC={open:'--open',tooearly:'--early',correct:'--ok',partial:'--part',incorrect:'--no'};
-const EMO={correct:'✅ UITGEKOMEN',incorrect:'❌ NIET UITGEKOMEN',partial:'🟡 DEELS UITGEKOMEN',tooearly:'⏳ TE VROEG OM TE ZEGGEN',open:'🔮'};
+const EMO={correct:'✅ Correcte voorspelling',incorrect:'❌ Onjuiste voorspelling',partial:'🟠 Deels correct',tooearly:'⏳ Te vroeg om te zeggen',open:'🔮'};
 const today=()=>new Date().toISOString().slice(0,10);
 const addY=(d,n)=>{const x=new Date(d+'T12:00:00');x.setFullYear(x.getFullYear()+n);return x.toISOString().slice(0,10)};
 const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}):'—';
@@ -220,8 +221,16 @@ function tweetFor(p){
   return `🔮 ${p.who}${p.role?` (${p.role})`:''} voorspelde${p.outlet?` in ${p.outlet}`:''}${p.saidOn?` op ${fmt(p.saidOn)}`:''}: ${p.claim}\n\n${p.nextCheck?`📅 Wij checken dit op ${fmt(p.nextCheck)}.\n`:''}#Voorspellingschecker`;
 }
 function verdictTweet(p,c){
-  return `${EMO[c.verdict]}\n\n${p.who} voorspelde${p.saidOn?` op ${fmt(p.saidOn)}`:''}: ${p.claim}\n\n${c.note||''}${c.value!=null&&c.value!==''?`\nStand ${fmt(c.date)}: ${c.value}${p.metric?.unit?' '+p.metric.unit:''}`:''}\n#Voorspellingschecker`.replace(/\n{3,}/g,'\n\n');
+  const yr=p.saidOn?` (${p.saidOn.slice(0,4)})`:'';
+  const val=!c.note&&c.value!=null&&c.value!==''?`Stand ${fmt(c.date)}: ${c.value}${p.metric?.unit?' '+p.metric.unit:''}`:'';
+  const mk=cl=>`${EMO[c.verdict]}\n\n${p.who}${yr}: ${cl}\n\n${c.note||val}${c.url?'\n'+c.url:''}\n\n#Voorspellingschecker`.replace(/\n{3,}/g,'\n\n').trim();
+  let t=mk(p.claim);
+  if(t.length>MAXT){const cut=t.length-MAXT+1;t=mk(p.claim.slice(0,Math.max(40,p.claim.length-cut)).replace(/\s+\S*$/,'')+'…')}
+  return t;
 }
+function srcUrl(c){return c.url||((c.sources||'').match(/https?:\/\/[^\s,·]+/)||[''])[0]}
+function srcRest(c){return (c.sources||'').replace(srcUrl(c),'').replace(/^[\s·,;]+|[\s·,;]+$/g,'')}
+function srcLink(c){const u=srcUrl(c);if(!u)return'';let h='';try{h=new URL(u).hostname.replace(/^www\./,'')}catch{return''}if(/^(x|twitter)\.com$/.test(h))h='X';return`<a class="srcbox" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">Bron: ${esc(h)} ↗</a>`}
 
 /* ---------- board ---------- */
 function board(){
@@ -260,14 +269,15 @@ function card(p){
   ${PUB?`<div class="row">${p.sourceUrl?`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(p.sourceUrl)}">${/x\.com\/voorspellingchk/.test(p.sourceUrl)?'Bekijk op X':'Bron'}</a>`:''}</div>`:`<div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
   <details class="dossier"><summary>Dossier, checks en oordeel${checks.length?` (${checks.length})`:''}</summary>
    ${p.metric?.label?`<div class="fig" data-fig="${esc(p.id)}" style="height:280px"><svg></svg></div>${chartLegend(p)}<p class="count">${esc(p.metric.label)}${p.metric.unit?' ('+esc(p.metric.unit)+')':''}${p.metric.target!=null?` · voorspelde waarde: ${esc(p.metric.target)}`:''}</p>`:''}
-   ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${PUB?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}</td><td class="v-${c.verdict}"><b>${V[c.verdict][1]}</b></td><td>${esc(c.value??'')}</td><td>${esc(c.note)}${c.sources?`<br><span class="count">${esc(c.sources)}</span>`:''}</td>${PUB?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
+   ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${PUB?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}</td><td class="v-${c.verdict}"><b>${EMO[c.verdict]}</b>${srcLink(c)}</td><td>${esc(c.value??'')}</td><td>${esc(c.note)}${srcRest(c)?`<br><span class="count">${esc(srcRest(c))}</span>`:''}</td>${PUB?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
    ${PUB?'':`   <h3 style="font-size:17px;margin-top:18px">Nieuwe check</h3>
    <div class="grid">
     <label>Datum<input type="date" id="cd-${esc(p.id)}" value="${today()}"></label>
     <label>Oordeel<select id="cv-${esc(p.id)}">${['tooearly','correct','partial','incorrect'].map(k=>`<option value="${k}">${V[k][1]}</option>`).join('')}</select></label>
     ${p.metric?.label?`<label>Gemeten stand${p.metric.unit?' ('+esc(p.metric.unit)+')':''}<input id="cm-${esc(p.id)}" inputmode="decimal"></label>`:''}
    </div>
-   <label style="margin-top:10px">Toelichting en bewijs<textarea id="cn-${esc(p.id)}" style="min-height:80px" placeholder="Wat is er werkelijk gebeurd? Met bron."></textarea></label>
+   <label style="margin-top:10px">Link naar de bron<input id="cu-${esc(p.id)}" type="url" placeholder="https://… (artikel of cijfers die het oordeel onderbouwen)"></label>
+   <label style="margin-top:10px">Korte toelichting (komt in de tweet)<textarea id="cn-${esc(p.id)}" style="min-height:70px" placeholder="Eén korte zin: wat is er werkelijk gebeurd?"></textarea></label>
    <div class="row"><button data-check="${esc(p.id)}">Check opslaan</button><button class="ghost" data-ai="${esc(p.id)}" ${sample?'':'hidden'}>Laat Claude een oordeel voorstellen</button><span class="count" id="am-${esc(p.id)}"></span></div>
    <h3 style="font-size:17px;margin-top:18px">Gegevens bewerken</h3>
    <div class="grid">
@@ -393,7 +403,7 @@ function dash(){
   const topics=`<div class="tile"><h3>Voorspellingen per onderwerp</h3>${cats.map(c=>`<div class="catrow" data-cat="${esc(c)}"><span>${c}</span><div style="width:${byCat[c].length/mx*100}%">${verdictBar(byCat[c],'catbar')}</div><span class="n">${byCat[c].length}</span></div>`).join('')}
    <div class="legend" style="color:var(--mute);margin-top:12px">${['correct','partial','incorrect','tooearly','open'].map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span>${V[k][0]}</span>`).join('')}</div></div>`;
   $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)+tile('Voorspelling van de dag',dayP,'',dayKick)
-    +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste incorrecte voorspelling',li,chkNote(li))
+    +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
     +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${up.verdict||'open'}">${V[up.verdict||'open'][0]}</span><div class="head"><span class="who">${esc(up.who)}</span> <span class="role">${esc(up.role)}</span><p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
     +recap+topics;
   if(up)chart(up,document.querySelector('[data-fig2]'));
@@ -470,6 +480,7 @@ async function saveEdits(id){
 async function addCheck(id){
   const p=get(id),c={date:$('#cd-'+CSS.escape(id)).value||today(),verdict:$('#cv-'+CSS.escape(id)).value,note:$('#cn-'+CSS.escape(id)).value.trim()};
   const m=$('#cm-'+CSS.escape(id));if(m&&m.value.trim())c.value=+m.value.replace(',','.');
+  const u=$('#cu-'+CSS.escape(id)).value.trim();if(u)c.url=u;
   c.tweet=verdictTweet(p,c);
   const checks=(p.checks||[]).concat([c]).sort((a,b)=>a.date.localeCompare(b.date));
   try{await db.doc('predictions/'+id).update({checks,verdict:c.verdict,nextCheck:nextAfterCheck(p,c.date,c.verdict),lastChecked:c.date,editedAt:new Date().toISOString()});toast('Check opgeslagen — tweet staat in de tabel')}catch{toast('Opslaan mislukt')}
@@ -481,8 +492,9 @@ async function aiVerdict(id){
 Voorspelling: ${JSON.stringify({who:p.who,role:p.role,claim:p.claim,saidOn:p.saidOn,targetDate:p.targetDate,metric:p.metric,eerdereChecks:p.checks})}
 Aanvullend bewijs van de redactie: ${$('#cn-'+CSS.escape(id)).value||'(geen)'}
 Werk alleen met wat je zeker weet en met het aangeleverde bewijs; als je kennis niet tot vandaag reikt of de doeldatum nog niet voorbij is, kies dan "tooearly" en zeg wat er nodig is om te toetsen.
-Geef ALLEEN JSON: {"verdict":"correct|partial|incorrect|tooearly","note":"toelichting in 1-3 zinnen, Nederlands, met bronnen indien bekend","value":getal of null (actuele stand van de meetbare grootheid, alleen als je die zeker weet)}`,{modelTier:'complex'});
-    if(r&&V[r.verdict]){$('#cv-'+CSS.escape(id)).value=r.verdict;$('#cn-'+CSS.escape(id)).value=r.note||'';const m=$('#cm-'+CSS.escape(id));if(m&&r.value!=null)m.value=r.value;msg.textContent='Voorstel ingevuld. Controleer en sla op.'}else msg.textContent='Geen bruikbaar antwoord.';
+De toelichting gaat direct in een tweet, dus houd het kort: ÉÉN korte, krachtige zin in het Nederlands (max 150 tekens) met het belangrijkste feit of getal, gevolgd door " Bron: <korte bronnaam>" als je een betrouwbare bron weet. Niet twijfelen, de voorspelling niet herhalen.
+Geef ALLEEN JSON: {"verdict":"correct|partial|incorrect|tooearly","note":"korte tweet-zin + bron, max 180 tekens","value":getal of null (actuele stand van de meetbare grootheid, alleen als je die zeker weet),"url":"volledige https-link naar de genoemde bron, alleen als je zeker weet dat die bestaat, anders null"}`,{modelTier:'complex'});
+    if(r&&V[r.verdict]){$('#cv-'+CSS.escape(id)).value=r.verdict;$('#cn-'+CSS.escape(id)).value=r.note||'';const m=$('#cm-'+CSS.escape(id));if(m&&r.value!=null)m.value=r.value;if(r.url)$('#cu-'+CSS.escape(id)).value=r.url;msg.textContent='Voorstel ingevuld. Controleer en sla op.'}else msg.textContent='Geen bruikbaar antwoord.';
   }catch(e){msg.textContent='Lukte niet: '+(e.message||e.code)}
 }
 
