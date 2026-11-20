@@ -84,6 +84,8 @@ label>input,label>select,label>textarea{margin-top:4px}
 table{border-collapse:collapse;width:100%;font-size:14px;margin-top:10px}
 th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:500}
 .month{margin:22px 0 6px;font:700 22px "Space Grotesk",sans-serif}
+.cal li{cursor:pointer}.cal li:hover{background:var(--paper)}.cal li:hover b{color:var(--yel-ink)}
+.card.flash{border-color:var(--yel);box-shadow:0 0 0 3px var(--yel-soft),0 10px 30px var(--shadow);transition:box-shadow .3s,border-color .3s}
 .cal li{list-style:none;display:grid;grid-template-columns:5.5em minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:baseline}
 .cal{padding:0;margin:0}.cal time{font:700 16px "Space Grotesk",sans-serif;white-space:nowrap}
 .tag{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
@@ -439,7 +441,7 @@ function cal(){
   const O=occurrences();if(!O.length){$('#cal').innerHTML='<div class="empty">Nog geen checks gepland.</div>';return}
   let h='',m='';
   O.forEach(o=>{const mm=o.d.slice(0,7);if(mm!==m){if(m)h+='</ol>';m=mm;h+=`<h3 class="month">${new Date(mm+'-01T12:00:00').toLocaleDateString('nl-NL',{month:'long',year:'numeric'})}</h3><ol class="cal">`}
-    h+=`<li><time style="color:${o.d<today()?'var(--no)':'inherit'}">${new Date(o.d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}</time><span><b>${esc(o.p.who)}</b>: ${esc(o.p.claim)}</span><span class="tag">${o.interim?'tussentijdse check':'eindcheck'}</span></li>`});
+    h+=`<li data-open="${esc(o.p.id)}" tabindex="0"><time style="color:${o.d<today()?'var(--no)':'inherit'}">${new Date(o.d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}</time><span><b>${esc(o.p.who)}</b>: ${esc(o.p.claim)}</span><span class="tag">${o.interim?'tussentijdse check':'eindcheck'}</span></li>`});
   $('#cal').innerHTML=h+'</ol>';
 }
 function ics(){
@@ -522,6 +524,14 @@ function route(){const v=VIEWS.includes(location.hash.slice(1))?location.hash.sl
   VIEWS.forEach(k=>$('#v-'+k).hidden=k!==v);
   document.querySelectorAll('nav a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v));if(v==='kalender')cal()}
 addEventListener('hashchange',route);route();
+function openPred(id){
+  filt='all';q='';cat='';
+  if(location.hash!=='#ledger')history.pushState(null,'','#ledger');
+  route();renderAll();
+  const c=document.getElementById('c-'+id);if(!c)return;
+  c.querySelector('details').open=true;
+  requestAnimationFrame(()=>{const y=c.getBoundingClientRect().top+scrollY-(document.querySelector('nav').offsetHeight+12);scrollTo({top:y,behavior:'instant'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1600)});
+}
 function renderAll(){board();filters();list();if(!$('#v-kalender').hidden)cal();dash()}
 document.addEventListener('click',e=>{const t=e.target.closest('button,[data-open],[data-cat]');if(!t)return;const d=t.dataset;
   if(d.up){upIdx+=+d.up;dash();return}
@@ -533,13 +543,14 @@ document.addEventListener('click',e=>{const t=e.target.closest('button,[data-ope
   else if(d.check)addCheck(d.check);
   else if(d.ai)aiVerdict(d.ai);
   else if(d.del){if(t.dataset.sure){const id=d.del;db.doc('deleted/'+id).set({id,deletedAt:new Date().toISOString()}).catch(()=>{}).then(()=>db.doc('predictions/'+id).delete()).then(()=>toast('Verwijderd'))}else{t.dataset.sure=1;t.textContent='Klik nogmaals om te verwijderen'}}
-  else if(d.open){e.preventDefault();location.hash='ledger';filt='all';q='';cat='';renderAll();const c=document.getElementById('c-'+d.open);if(c){c.querySelector('details').open=true;c.scrollIntoView({behavior:'smooth'})}}
+  else if(d.open){e.preventDefault();openPred(d.open)}
   else if(t.id==='scan')scan();
   else if(t.id==='manual'){cands.push({who:'',role:'',claim:'',saidOn:today(),targetDate:'',outlet:$('#s-outlet').value,sourceUrl:$('#s-url').value,tweet:'',pick:true});candsRender()}
   else if(t.id==='savec')saveCands();
   else if(t.id==='clearc'){cands=[];candsRender()}
   else if(t.id==='ics')copy(ics());
 });
+document.addEventListener('keydown',e=>{const t=e.target.closest&&e.target.closest('li[data-open]');if(t&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openPred(t.dataset.open)}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id==='catsel'){cat=t.value;list()}if(t.id==='recapsel'){recapWho=t.value;dash()}});
 document.addEventListener('input',e=>{const t=e.target;
   if(t.id==='q'){q=t.value;list();const n=$('#q');n.focus();n.setSelectionRange(q.length,q.length)}
