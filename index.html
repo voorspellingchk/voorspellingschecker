@@ -316,12 +316,14 @@ function trendOf(pts){
   for(let i=0;i<n;i++){sxx+=(xs[i]-mx)**2;sxy+=(xs[i]-mx)*(ys[i]-my)}
   if(!sxx)return null;const k=sxy/sxx;return{k,at:x=>my+k*(x-mx)};
 }
+const RMOTION=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function chart(p,box){
   box=box||document.querySelector(`[data-fig="${CSS.escape(p.id)}"]`);if(!box)return;
+  let played=RMOTION,tok=0;
   const s=box.querySelector('svg'),pts=chartPts(p),m=p.metric||{};
   const tgt=m.target!=null&&m.target!==''?+m.target:null,tr=trendOf(pts);
-  const draw=()=>{const W=s.clientWidth,H=s.clientHeight;if(!W)return;
-    if(!pts.length){s.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--mute)" font-size="14">Nog geen meetwaarden. Voeg een check met stand toe.</text>`;return}
+  const draw=anim=>{anim=anim===true;const W=s.clientWidth,H=s.clientHeight;if(!W)return;tok++;
+    if(!pts.length){s.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--mute)" font-size="14">Nog geen meetwaarden.${PUB?'':' Voeg een check met stand toe.'}</text>`;return}
     const said=p.saidOn?yr(p.saidOn):null,routes=(m.routes&&m.routes.length?m.routes:(tgt!=null&&p.targetDate?[{date:p.targetDate,value:tgt,label:m.targetLabel}]:[])).filter(r=>r.date&&r.value!=null&&r.value!=='').map(r=>({x:yr(r.date),v:+r.value,label:r.label})),end=routes.length?Math.max(...routes.map(r=>r.x)):(p.targetDate?yr(p.targetDate):null);
     const xsAll=pts.map(q=>yr(q.d)).concat(said!=null?[said]:[]).concat(end!=null?[end]:[]);
     let x0=Math.floor(Math.min(...xsAll))-(said!=null&&Math.min(...pts.map(q=>yr(q.d)))>=said?3:0),x1=Math.ceil(Math.max(...xsAll)+.01);
@@ -329,7 +331,7 @@ function chart(p,box){
     const vs=pts.map(q=>q.v).concat(routes.map(r=>r.v));
     if(tr&&said!=null){vs.push(tr.at(said));if(end!=null)vs.push(tr.at(end))}
     let lo=Math.min(...vs),hi=Math.max(...vs);if(lo===hi){lo-=1;hi+=1}{const pad=(hi-lo)*.06;if(lo>=0&&lo-pad<0)lo=0;else lo-=pad;hi+=pad}const tk=niceTicks(lo,hi);lo=tk.lo;hi=tk.hi;
-    const L=46,R=18,T=26,B=30,X=x=>L+(x-x0)/(x1-x0)*(W-L-R),Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+    const L=Math.max(46,Math.max(...tk.vals.map(v=>tk.fmt(v).length))*6.6+12),R=18,T=26,B=30,X=x=>L+(x-x0)/(x1-x0)*(W-L-R),Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
     const pxYear=(W-L-R)/(x1-x0),step=pxYear>=29?1:pxYear>=15?2:5;
     let g='';
     const now=yr(today()),xn=Math.min(Math.max(X(now),L),W-R);
@@ -340,12 +342,23 @@ function chart(p,box){
     for(let y=x0;y<=x1;y++){const x=X(y);g+=`<line x1="${x}" x2="${x}" y1="${H-B}" y2="${H-B+4}" stroke="var(--mute)"/>`;if((y-x0)%step===0)g+=`<text x="${x}" y="${H-B+17}" text-anchor="middle" font-size="11" fill="var(--mute)">${y}</text>`}
     if(said!=null){const xs=X(said);g+=`<line x1="${xs}" x2="${xs}" y1="${T-6}" y2="${H-B}" stroke="var(--ink)" stroke-width="1" opacity=".6"/>`;
       const lab=`voorspeld ${fmt(p.saidOn)}`,right=xs+8+lab.length*6.3<W-R;g+=`<text x="${right?xs+6:xs-6}" y="${T-10}" text-anchor="${right?'start':'end'}" font-size="12" font-weight="600" fill="var(--ink)">${lab}</text>`}
-    if(said!=null)routes.forEach((r,i)=>{const op=i?.6:1;g+=`<line x1="${X(said)}" x2="${X(r.x)}" y1="${Y(ref!=null?ref:r.v)}" y2="${Y(r.v)}" stroke="var(--yel)" stroke-dasharray="${i?'2 5':'6 5'}" stroke-width="2" opacity="${op}"/><circle cx="${X(r.x)}" cy="${Y(r.v)}" r="5" fill="none" stroke="var(--yel)" stroke-width="2" opacity="${op}"/><text x="${X(r.x)-10}" y="${!i&&Y(r.v)+18<H-B-4?Y(r.v)+18:Y(r.v)-12}" text-anchor="end" font-size="12" font-weight="600" fill="var(--yel)" opacity="${op}" stroke="var(--paper)" stroke-width="4" paint-order="stroke">${W<520?Math.floor(r.x):r.label?esc(r.label):`voorspeld: ${r.v}${m.unit?' '+esc(m.unit):''}`}</text>`});
+    if(said!=null)routes.forEach((r,i)=>{const op=i?.6:1;g+=`${ref!=null?`<line x1="${X(said)}" x2="${X(r.x)}" y1="${Y(ref)}" y2="${Y(r.v)}" stroke="var(--yel)" stroke-dasharray="${i?'2 5':'6 5'}" stroke-width="2" opacity="${op}"/>`:''}<circle cx="${X(r.x)}" cy="${Y(r.v)}" r="5" fill="none" stroke="var(--yel)" stroke-width="2" opacity="${op}"/><text x="${X(r.x)-10}" y="${!i&&Y(r.v)+18<H-B-4?Y(r.v)+18:Y(r.v)-12}" text-anchor="end" font-size="12" font-weight="600" fill="var(--yel)" opacity="${op}" stroke="var(--paper)" stroke-width="4" paint-order="stroke">${W<520?Math.floor(r.x):r.label?esc(r.label):`voorspeld: ${nl(r.v)}${m.unit?' '+esc(m.unit):''}`}</text>`});
     if(tr&&said!=null){const xe=Math.max(end!=null?end:x1,said+1,...pts.map(q=>yr(q.d)));g+=`<line x1="${X(said)}" y1="${Y(tr.at(said))}" x2="${X(xe)}" y2="${Y(tr.at(xe))}" stroke="var(--early)" stroke-width="2" stroke-dasharray="7 5"/><text x="${X(xe)-8}" y="${Y(tr.at(xe))+(tr.at(xe)>tgt?-9:17)}" text-anchor="end" font-size="12" fill="var(--early)" stroke="var(--paper)" stroke-width="4" paint-order="stroke">trend: ${nl(tr.at(xe))}</text>`}
-    g+=`<polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${pts.map(q=>X(yr(q.d))+','+Y(q.v)).join(' ')}"/>`+pts.map(q=>`<circle cx="${X(yr(q.d))}" cy="${Y(q.v)}" r="${said!=null&&yr(q.d)>=said?4.5:3}" fill="${q.b?'var(--paper)':'var(--ink)'}" stroke="var(--ink)" stroke-width="1.5"><title>${fmt(q.d)}: ${q.v}</title></circle>`).join('');
-    if(said!=null){if(ref!=null)g+=`<circle cx="${X(said)}" cy="${Y(ref)}" r="6.5" fill="var(--yel)" stroke="var(--deep)" stroke-width="2"/>`}
-    s.innerHTML=g};
-  draw();new ResizeObserver(draw).observe(s);box.closest('details')?.addEventListener('toggle',draw);
+    const P=pts.map(q=>({x:X(yr(q.d)),y:Y(q.v),v:q.v,d:q.d})),last=P[P.length-1],unit=m.unit?' '+m.unit:'';
+    const cnt=(d,v,fin)=>`${fin?'laatste meting ':''}${String(d).slice(0,4)}: ${nl(v)}${unit}`;
+    g+=`<g class="meas"${!played&&!anim?' opacity="0"':''}><polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${P.map(o=>o.x+','+o.y).join(' ')}"/>`+pts.map(q=>`<circle cx="${X(yr(q.d))}" cy="${Y(q.v)}" r="${said!=null&&yr(q.d)>=said?4.5:3}" fill="${q.b?'var(--paper)':'var(--ink)'}" stroke="var(--ink)" stroke-width="1.5"><title>${fmt(q.d)}: ${q.v}</title></circle>`).join('')+`<circle class="head" r="6" fill="var(--ink)" stroke="var(--paper)" stroke-width="2" opacity="0"/><text class="vcount" x="${W-R}" y="${T-10}" text-anchor="end" font-size="13" font-weight="700" fill="var(--ink)">${esc(cnt(last.d,last.v,true))}</text></g>`;
+    if(said!=null&&ref!=null)g+=`<circle cx="${X(said)}" cy="${Y(ref)}" r="6.5" fill="var(--yel)" stroke="var(--deep)" stroke-width="2"/>`;
+    s.innerHTML=g;
+    if(anim&&P.length){const my=tok,poly=s.querySelector('.meas polyline'),cs=[...s.querySelectorAll('.meas circle:not(.head)')],hd=s.querySelector('.meas .head'),vc=s.querySelector('.vcount');
+      let ri=-1,fv=P[0].v,dv=P[0].v,ts=0;const xa=P[0].x,xb=last.x,dur=Math.min(3200,Math.max(1300,P.length*170)),t0=performance.now();cs.forEach(c=>c.style.opacity=0);hd.setAttribute('opacity','1');
+      const stp=now=>{if(my!==tok)return;const t=Math.min(1,(now-t0)/dur),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,xh=xa+(xb-xa)*e;
+        let i=0;while(i<P.length-1&&P[i+1].x<=xh)i++;const a=P[i],b=P[Math.min(i+1,P.length-1)],fr=b.x>a.x?(xh-a.x)/(b.x-a.x):0,yh=a.y+(b.y-a.y)*fr;
+        poly.setAttribute('points',P.slice(0,i+1).map(o=>o.x+','+o.y).concat([xh+','+yh]).join(' '));cs.forEach((c,k)=>c.style.opacity=P[k].x<=xh+.5?1:0);
+        hd.setAttribute('cx',xh);hd.setAttribute('cy',yh);if(i!==ri){ri=i;fv=dv;ts=now}dv=fv+(P[ri].v-fv)*Math.min(1,(now-ts)/280);vc.textContent=cnt(P[ri].d,dv,false);
+        if(t<1||now-ts<280)requestAnimationFrame(stp);else{hd.setAttribute('opacity','0');vc.textContent=cnt(last.d,last.v,true)}};
+      requestAnimationFrame(stp)}};
+  draw();new ResizeObserver(()=>draw()).observe(s);box.closest('details')?.addEventListener('toggle',()=>draw());
+  if(!played){const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&s.clientWidth){played=true;io.disconnect();draw(true)}},{threshold:.35});io.observe(box)}
 }
 const chartLegend=p=>`<div class="legend" style="color:var(--mute);margin-top:8px"><span><span class="dot" style="background:var(--ink)"></span>gemeten</span><span><span class="dot" style="background:var(--yel)"></span>moment van voorspellen (verticale lijn)</span><span><span class="dot" style="background:transparent;border:2px solid var(--yel)"></span>voorspelde route${p.metric&&p.metric.routes&&p.metric.routes.length>1?"s":""} naar de doelwaarde</span><span><span class="dot" style="background:var(--deep);border:1px solid var(--line2)"></span>verleden</span>${trendOf(chartPts(p))?'<span><span class="dot" style="background:var(--early)"></span>trendlijn (alle metingen)</span>':''}</div>`;
 
