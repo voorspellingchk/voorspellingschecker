@@ -70,6 +70,11 @@ button:disabled{opacity:.45;cursor:default}
 .meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--mute)}
 .meta span{white-space:nowrap}.meta a{color:var(--ink)}
 .stamp{position:absolute;top:16px;right:18px;background:var(--paper);font:700 13px "Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.06em;padding:5px 9px;border:2px solid currentColor;border-radius:4px;transform:rotate(-3deg)}
+.wholine{display:flex;align-items:center;gap:10px}.wholine>span:last-child{min-width:0}
+.av{position:relative;flex:none;width:38px;height:38px;border-radius:50%;display:inline-grid;place-items:center;font:700 13px/1 "Space Grotesk",sans-serif;color:#fff;letter-spacing:.02em;overflow:hidden;box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--line2)}
+.av.org{border-radius:9px;font-size:11px}.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--paper)}
+.av.lg{width:54px;height:54px;font-size:17px}.av.lg.org{font-size:14px}
+.imgcredit{font-size:12px;color:var(--mute);margin-top:8px}
 .card .head{padding-right:150px}
 .v-correct{color:var(--ok)}.v-incorrect{color:var(--no)}.v-partial{color:var(--part)}.v-tooearly{color:var(--early)}.v-open{color:var(--open)}
 .tweet{margin-top:12px;border-left:3px solid var(--yel);background:var(--bg);border-radius:0 8px 8px 0;padding-right:10px;padding:4px 0 4px 12px;font-size:15px;white-space:pre-wrap}
@@ -195,6 +200,25 @@ const $=s=>document.querySelector(s);
 const PUB=window.VC_PUBLIC||null;
 if(PUB){document.body.classList.add('pub');document.querySelectorAll('.tipbtn').forEach(a=>{if(PUB.tipUrl)a.href=PUB.tipUrl;else a.remove()})}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* avatars: eigen afbeelding (veld img, per naam) of initialen */
+const ORG_AC=/^[A-Z0-9&.\- ]{2,}$|\b(NOS|ING|ABN|KNMI|RIVM|CPB|CBS|PBL|DNB|IEA|IPCC|COA|SAGE|CDC|IKNL|LCPS|PwC|VN)\b/;
+const ORG_W=/planbureau|bureau|bank|instituut|institute|universiteit|university|agentschap|agency|kabinet|regering|overheid|dienst|team|panel|modellen|experts|deskundigen|council|organisatie|comit|centrum|centre|center|economist|telegraaf|spiegel|australian|rabobank|goldman|quantumscape|oxfam|weer\.nl|met office|politie|weersverwachting|onderzoek|insider/i;
+const isOrg=w=>!!w&&!/ vs /.test(w)&&(ORG_AC.test(w)||ORG_W.test(w));
+const PART=/^(van|de|der|den|het|'t|ten|ter|te|von|da|di|le|la|du|dr\.?|prof\.?|sir)$/i;
+function initials(w){w=(w||'?').replace(/\(.*?\)/g,'').trim();
+  if(/ vs /.test(w))return w.split(/ vs /).slice(0,2).map(x=>initials(x).charAt(0)).join('');
+  const first=w.split(/[\s,/]+/)[0];
+  if(isOrg(w)){if(/^[A-Z0-9&]{2,5}$/.test(first))return first;const caps=w.split(/[\s,/]+/).filter(x=>/^[A-Z]/.test(x)&&!PART.test(x));return (caps.length>1?caps.slice(0,3).map(x=>x[0]).join(''):w.replace(/[^A-Za-z0-9]/g,'').slice(0,3)).toUpperCase()}
+  if(/ en /.test(w))return w.split(/ en /).slice(0,2).map(x=>initials(x).charAt(0)).join('');
+  const ws=w.split(/\s+/).filter(x=>!PART.test(x)&&!/^e\.a\.?$/.test(x)&&/[A-Za-zÀ-ÿ]/.test(x));if(!ws.length)return w[0].toUpperCase();
+  return (ws[0][0]+(ws.length>1?ws[ws.length-1][0]:'')).toUpperCase()}
+const hue=w=>{let h=0;for(const c of String(w))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
+let IMGS={};
+function buildImgs(){IMGS={};items.forEach(p=>{if(p.img&&/^https:\/\//.test(p.img)&&!IMGS[p.who])IMGS[p.who]={src:p.img,credit:p.imgCredit||''}})}
+function avatar(who,cls=''){const im=IMGS[who];
+  return `<span class="av${isOrg(who)?' org':''}${cls?' '+cls:''}" style="background:hsl(${hue(who)} 48% 40%)" aria-hidden="true">${esc(initials(who))}${im?`<img src="${esc(im.src)}" alt="" loading="lazy" referrerpolicy="no-referrer" title="${esc(im.credit)}" onerror="this.remove()">`:''}</span>`}
+const whoLine=p=>`<div class="wholine">${avatar(p.who)}<span><span class="who">${esc(p.who)}</span> <span class="role">${esc(p.role)}</span></span></div>`;
+const imgCredit=p=>{const im=IMGS[p.who];return im&&im.credit?`<p class="imgcredit">Afbeelding: ${esc(im.credit)}</p>`:''};
 const V={open:['Open','Nog niet gecheckt'],tooearly:['Te vroeg','Te vroeg om te zeggen'],correct:['Correct','Correcte voorspelling'],partial:['Deels','Deels correct'],incorrect:['Onjuist','Onjuiste voorspelling']};
 const VC={open:'--open',tooearly:'--early',correct:'--ok',partial:'--part',incorrect:'--no'};
 const EMO={correct:'✅ Correcte voorspelling',incorrect:'❌ Onjuiste voorspelling',partial:'🟠 Deels correct',tooearly:'⏳ Te vroeg om te zeggen',open:'🔮'};
@@ -269,12 +293,12 @@ function card(p){
   const v=p.verdict||'open',checks=p.checks||[];
   return `<article class="card" id="c-${esc(p.id)}">
   <span class="stamp v-${v}">${V[v][0]}</span>
-  <div class="head"><span class="who">${esc(p.who)}</span> <span class="role">${esc(p.role)}</span>
+  <div class="head">${whoLine(p)}
   <p class="claim">${esc(p.claim)}</p>
   <div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${p.sourceUrl?`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.outlet)}</a>`:esc(p.outlet)}</span>`:''}${p.targetDate?`<span>Doeldatum ${fmt(p.targetDate)}</span>`:''}<span>${p.nextCheck?`Volgende check <b style="color:${p.nextCheck<=today()?'var(--no)':'inherit'}">${fmt(p.nextCheck)}</b>`:'Afgerond'}</span>${p.recurrence==='yearly'?'<span class="tag">jaarlijkse check</span>':''}${p.by==='scan'?'<span class="tag">auto-scan</span>':''}${p.by==='x-archief'?'<span class="tag">X-archief</span>':''}</div></div>
   ${p.quote?`<p class="note" style="margin:8px 0 0">“${esc(p.quote)}”</p>`:''}
   ${PUB?`<div class="row">${p.sourceUrl?`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(p.sourceUrl)}">${/x\.com\/voorspellingchk/.test(p.sourceUrl)?'Bekijk op X':'Bron'}</a>`:''}</div>`:`<div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
-  <details class="dossier"><summary>Dossier, checks en oordeel${checks.length?` (${checks.length})`:''}</summary>
+  <details class="dossier"><summary>Dossier, checks en oordeel${checks.length?` (${checks.length})`:''}</summary>${imgCredit(p)}
    ${p.metric?.label?`<div class="fig" data-fig="${esc(p.id)}" style="height:280px"><svg></svg></div>${chartLegend(p)}<p class="count">${esc(p.metric.label)}${p.metric.unit?' ('+esc(p.metric.unit)+')':''}${p.metric.target!=null?` · voorspelde waarde: ${esc(p.metric.target)}`:''}</p>`:''}
    ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${PUB?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}</td><td class="v-${c.verdict}"><b>${EMO[c.verdict]}</b>${srcLink(c)}</td><td>${esc(c.value??'')}</td><td>${esc(c.note)}${srcRest(c)?`<br><span class="count">${esc(srcRest(c))}</span>`:''}</td>${PUB?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
    ${PUB?'':`   <h3 style="font-size:17px;margin-top:18px">Nieuwe check</h3>
@@ -288,7 +312,7 @@ function card(p){
    <div class="row"><button data-check="${esc(p.id)}">Check opslaan</button><button class="ghost" data-ai="${esc(p.id)}" ${sample?'':'hidden'}>Laat Claude een oordeel voorstellen</button><span class="count" id="am-${esc(p.id)}"></span></div>
    <h3 style="font-size:17px;margin-top:18px">Gegevens bewerken</h3>
    <div class="grid">
-    ${[['who','Naam'],['role','Functie'],['outlet','Medium'],['sourceUrl','Link'],['saidOn','Gezegd op','date'],['targetDate','Doeldatum','date'],['nextCheck','Volgende check','date'],['topic','Onderwerp']].map(([f,l,t])=>`<label>${l}<input data-e="${esc(p.id)}" data-f="${f}" type="${t||'text'}" value="${esc(p[f])}"></label>`).join('')}
+    ${[['who','Naam'],['role','Functie'],['outlet','Medium'],['sourceUrl','Link'],['saidOn','Gezegd op','date'],['targetDate','Doeldatum','date'],['nextCheck','Volgende check','date'],['topic','Onderwerp'],['img','Afbeelding-URL (https, rechtenvrij; geldt voor alle voorspellingen van deze naam)'],['imgCredit','Maker en licentie van de afbeelding']].map(([f,l,t])=>`<label>${l}<input data-e="${esc(p.id)}" data-f="${f}" type="${t||'text'}" value="${esc(p[f])}"></label>`).join('')}
    </div>
    <label style="margin-top:10px">Voorspelling<textarea data-e="${esc(p.id)}" data-f="claim" style="min-height:70px">${esc(p.claim)}</textarea></label>
    <label style="margin-top:10px">Tweet <span class="count" data-cnt="${esc(p.id)}">${(p.tweet||'').length}/${MAXT}</span><textarea data-e="${esc(p.id)}" data-f="tweet" style="min-height:110px">${esc(p.tweet||tweetFor(p))}</textarea></label>
@@ -371,7 +395,7 @@ const numChecks=p=>(p.checks||[]).filter(c=>c.value!==''&&c.value!=null&&!isNaN(
 function tile(title,p,extra='',kicker=''){
   if(!p)return `<div class="tile"><h3>${title}</h3><p class="note">Nog niets om te tonen.</p></div>`;
   const v=p.verdict||'open';
-  return `<div class="tile" data-open="${esc(p.id)}"><h3>${title}</h3><span class="stamp v-${v}">${V[v][0]}</span><div class="head">${kicker?`<p class="kicker">${kicker}</p>`:''}<span class="who">${esc(p.who)}</span> <span class="role">${esc(p.role)}</span><p class="claim">${esc(p.claim)}</p><div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${esc(p.outlet)}</span>`:''}</div></div>${extra}</div>`;
+  return `<div class="tile" data-open="${esc(p.id)}"><h3>${title}</h3><span class="stamp v-${v}">${V[v][0]}</span><div class="head">${kicker?`<p class="kicker">${kicker}</p>`:''}${whoLine(p)}<p class="claim">${esc(p.claim)}</p><div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${esc(p.outlet)}</span>`:''}</div></div>${extra}</div>`;
 }
 function verdictBar(list,cls='minibar'){const n={correct:0,partial:0,incorrect:0,tooearly:0,open:0};list.forEach(p=>n[p.verdict||'open']++);const t=list.length||1;return `<div class="${cls}">${['correct','partial','incorrect','tooearly','open'].map(k=>n[k]?`<span title="${V[k][1]}: ${n[k]}" style="width:${n[k]/t*100}%;background:var(${VC[k]})"></span>`:'').join('')}</div>`}
 function track(p){
@@ -413,7 +437,7 @@ function dash(){
   const R=people[recapWho].slice().sort((a,b)=>(b.saidOn||'').localeCompare(a.saidOn||''));
   const cnt=k=>R.filter(p=>(p.verdict||'open')===k).length,chk=R.filter(p=>FINAL.includes(p.verdict)).length;
   const sc=chk?Math.round((cnt('correct')+cnt('partial')/2)/chk*100):null;
-  const recap=`<div class="tile"><h3>Recap per persoon</h3><select id="recapsel">${names.map(n=>`<option ${n===recapWho?'selected':''} value="${esc(n)}">${esc(n)} (${people[n].length})</option>`).join('')}</select>
+  const recap=`<div class="tile"><h3>Recap per persoon</h3><div class="wholine">${avatar(recapWho,'lg')}<select id="recapsel" style="flex:1">${names.map(n=>`<option ${n===recapWho?'selected':''} value="${esc(n)}">${esc(n)} (${people[n].length})</option>`).join('')}</select></div>
    <div class="score"><span class="big">${sc==null?'—':sc+'%'}</span><span>${cnt('correct')} correct · ${cnt('partial')} deels · ${cnt('incorrect')} niet correct · ${cnt('tooearly')+cnt('open')} nog open</span></div>
    ${verdictBar(R)}<p class="count" style="margin:6px 0 0">Score = correct + half voor deels correct, gedeeld door het aantal beoordeelde voorspellingen.</p>
    <ul class="mini">${R.map(p=>`<li data-open="${esc(p.id)}"><span>${fmt(p.saidOn)}</span><b class="v-${p.verdict||'open'}">${V[p.verdict||'open'][0]}</b><span>${esc(p.claim)}</span></li>`).join('')}</ul></div>`;
@@ -424,7 +448,7 @@ function dash(){
    <div class="legend" style="color:var(--mute);margin-top:12px">${['correct','partial','incorrect','tooearly','open'].map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span>${V[k][0]}</span>`).join('')}</div></div>`;
   $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)+tile('Voorspelling van de dag',dayP,'',dayKick)
     +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
-    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${up.verdict||'open'}">${V[up.verdict||'open'][0]}</span><div class="head"><span class="who">${esc(up.who)}</span> <span class="role">${esc(up.role)}</span><p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
+    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${up.verdict||'open'}">${V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
     +recap+topics;
   if(up)chart(up,document.querySelector('[data-fig2]'));
 }
@@ -567,7 +591,7 @@ themeBtn.onclick=()=>{const t=curTheme()==='light'?'dark':'light';document.docum
 mqLight.addEventListener('change',paintTheme);paintTheme();
 board();filters();list();
 const timer=setTimeout(()=>{if(!items.length)$('#list').innerHTML='<div class="empty">De database is nog niet bereikbaar. Probeer het later opnieuw.</div>'},10000);
-const onData=()=>{clearTimeout(timer);const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
+const onData=()=>{clearTimeout(timer);buildImgs();const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
     board();list();open.forEach(id=>{const c=document.getElementById(id);if(c)c.querySelector('details').open=true});if(!$('#v-kalender').hidden)cal();dash()};
 if(PUB){fetch(PUB.data||'data.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{items=(d.predictions||d).filter(p=>p&&p.who&&p.claim);onData()}).catch(()=>{clearTimeout(timer);$('#list').innerHTML='<div class="empty">De voorspellingen konden niet worden geladen.</div>'})}
 else{
