@@ -430,10 +430,11 @@ function dash(){
   // update
   const ups=items.filter(p=>p.metric&&numChecks(p).length).sort((a,b)=>((FINAL.includes(a.verdict)?1:0)-(FINAL.includes(b.verdict)?1:0))||lastCheck(b).localeCompare(lastCheck(a)));
   upIdx=((upIdx%ups.length)+ups.length)%(ups.length||1);
-  const up=ups[upIdx];let upExtra='';
+  const up=ups[upIdx];let upExtra='',upStamp=null;
   if(up){const tr=track(up),u=up.metric.unit?' '+esc(up.metric.unit):'';
     upExtra=`<div class="fig" data-fig2="${esc(up.id)}" style="height:300px"><svg></svg></div>${chartLegend(up)}<p class="count">${esc(up.metric.label)}${up.metric.target!=null?` · voorspelde waarde ${esc(up.metric.target)}${u}`:''}</p>`;
-    if(tr){upExtra+=`<div class="row">${tr.on!=null?`<span class="pill" style="background:var(${tr.on?'--ok':'--no'})">${tr.on?'Op schema':'Niet op schema'}</span>`:''}<span>Stand ${fmt(tr.last.date)}: <b>${nl(tr.last.value)}${u}</b>${tr.exp!=null?`. Op schema zou dat ${nl(tr.exp)}${u} zijn. ${tr.prog<0?`De stand beweegt de verkeerde kant op, terwijl ${Math.round(tr.f*100)}% van de tijd verstreken is.`:`${Math.round(tr.prog*100)}% van de weg afgelegd na ${Math.round(tr.f*100)}% van de tijd.`}`:''}</span></div>`}
+    if(tr&&tr.on!=null&&!FINAL.includes(up.verdict))upStamp=tr.on?['correct','Op schema']:['incorrect','Niet op schema'];
+    if(tr){upExtra+=`<div class="row">${tr.on!=null&&!upStamp?`<span class="pill" style="background:var(${tr.on?'--ok':'--no'})">${tr.on?'Op schema':'Niet op schema'}</span>`:''}<span>Stand ${fmt(tr.last.date)}: <b>${nl(tr.last.value)}${u}</b>${tr.exp!=null?`. Op schema zou dat ${nl(tr.exp)}${u} zijn. ${tr.prog<0?`De stand beweegt de verkeerde kant op, terwijl ${Math.round(tr.f*100)}% van de tijd verstreken is.`:`${Math.round(tr.prog*100)}% van de weg afgelegd na ${Math.round(tr.f*100)}% van de tijd.`}`:''}</span></div>`}
     {const t=trendOf(chartPts(up));if(t&&up.targetDate){const v=t.at(yr(up.targetDate));upExtra+=`<p class="note" style="margin:8px 0 0">Trekken we de trend van alle metingen door, dan komt de stand op ${fmt(up.targetDate)} uit op ongeveer <b>${nl(v)}${u}</b>; voorspeld was ${nl(up.metric.target)}${u}.</p>`}}
     upExtra+=`<div class="row"><button class="ghost" data-up="-1">Vorige</button><button class="ghost" data-up="1">Volgende</button><span class="count">${upIdx+1} van ${ups.length}</span></div>`}
   // recap
@@ -454,7 +455,7 @@ function dash(){
    <div class="legend" style="color:var(--mute);margin-top:12px">${['correct','partial','incorrect','tooearly','open'].map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span>${V[k][0]}</span>`).join('')}</div></div>`;
   $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)+tile('Voorspelling van de dag',dayP,'',dayKick)
     +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
-    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${up.verdict||'open'}">${V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
+    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${upStamp?upStamp[0]:up.verdict||'open'}">${upStamp?upStamp[1]:V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
     +recap+topics;
   if(up)chart(up,document.querySelector('[data-fig2]'));
 }
