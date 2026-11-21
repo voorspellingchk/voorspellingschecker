@@ -21,8 +21,8 @@
 --bg:#0e1a3d;--paper:#15244f;--raised:#1b2d5f;--ink:#eef1fa;--mute:#a7b1d0;--line:#28396f;--line2:#344886;
 --ok:#3ed68c;--no:#ff6b6b;--part:#ff9f43;--early:#8fb3ff;--open:#8a93b5;--acc:#ffd23f;--blue:#4c6fff;
 --yel-ink:#ffd23f;--on-yel:#0b1430;--navbg:#0b1430ee;--shadow:#050b2266;--glow:#2a4bd155}
-:root[data-theme=light]{color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--on-v:#fff;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}
-@media (prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--on-v:#fff;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}}
+:root[data-theme=light]{color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif;overflow-x:clip}
 h1,h2,h3{font-family:"Space Grotesk",system-ui,sans-serif;line-height:1.05;margin:0;text-wrap:balance}
@@ -108,7 +108,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertic
 .tile .claim{font-size:17px}.tile .head{padding-right:120px}
 .tile.wide{grid-column:1/-1}
 .kicker{font:700 15px "Space Grotesk",sans-serif;margin:0 0 6px}
-.pill{display:inline-block;font:700 13px "Space Grotesk",sans-serif;padding:4px 10px;border-radius:99px;color:var(--on-v,var(--on-yel));white-space:nowrap}
+.pill{display:inline-block;font:700 13px "Space Grotesk",sans-serif;padding:4px 10px;border-radius:99px;color:var(--on-yel);white-space:nowrap}
 .mini{list-style:none;margin:10px 0 0;padding:0;max-height:420px;overflow:auto}
 .mini li{display:grid;grid-template-columns:6.5em 5.5em minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
 .mini li:hover{background:var(--bg)}
@@ -426,7 +426,7 @@ function dash(){
   // last correct / incorrect
   const lastOf=v=>items.filter(p=>p.verdict===v&&p.checks?.length).sort((a,b)=>lastCheck(b).localeCompare(lastCheck(a)))[0];
   const lc=lastOf('correct'),li=lastOf('incorrect');
-  const chkNote=p=>{if(!p)return'';const c=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date))[0];return c?`<p class="note" style="margin:10px 0 0">${V[c.verdict]?`<span class="pill" style="background:var(${VC[c.verdict]});margin-right:8px;vertical-align:1px">${V[c.verdict][1]}</span>`:''}Gecheckt ${fmt(c.date)}: ${esc(c.note)}</p>`:''};
+  const chkNote=p=>{if(!p)return'';const c=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date))[0];return c?`<p class="note" style="margin:10px 0 0">Gecheckt ${fmt(c.date)}: ${esc(c.note)}</p>`:''};
   // update
   const ups=items.filter(p=>p.metric&&numChecks(p).length).sort((a,b)=>((FINAL.includes(a.verdict)?1:0)-(FINAL.includes(b.verdict)?1:0))||lastCheck(b).localeCompare(lastCheck(a)));
   upIdx=((upIdx%ups.length)+ups.length)%(ups.length||1);
