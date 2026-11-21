@@ -276,7 +276,7 @@ function board(){
   const tot=items.length||1;
   $('#bar').innerHTML=Object.keys(n).map(k=>`<span title="${V[k][1]}: ${n[k]}" style="width:${n[k]/tot*100}%;background:var(${VC[k]})"></span>`).join('');
   $('#legend').innerHTML=Object.keys(n).map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span><b>${n[k]}</b>${V[k][1]}</span>`).join('');
-  const up=items.filter(p=>p.nextCheck).sort((a,b)=>a.nextCheck.localeCompare(b.nextCheck)).slice(0,5);
+  const up=items.filter(p=>p.nextCheck).sort((a,b)=>a.nextCheck.localeCompare(b.nextCheck)).slice(0,3);
   $('#due').innerHTML=up.length?up.map(p=>`<li data-open="${esc(p.id)}"><time class="${p.nextCheck<today()?'late':''}">${fmt(p.nextCheck)}</time><span>${esc(p.who)}: ${esc(p.claim.slice(0,80))}${p.claim.length>80?'…':''}</span></li>`).join(''):'<li><span></span><span>Nog geen checks gepland.</span></li>';
 }
 
