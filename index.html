@@ -33,7 +33,6 @@ header h1{font-size:clamp(36px,6vw,64px);font-weight:700;letter-spacing:-.03em}
 header h1 .sticker{display:inline-block;background:var(--yel);color:var(--on-yel);font-size:.3em;letter-spacing:0;padding:6px 10px;border-radius:6px;transform:rotate(-4deg) translateY(-.9em);margin-left:10px;vertical-align:middle}
 header p{margin:12px 0 0;color:var(--mute);max-width:62ch;font-size:17px}
 header a{color:var(--yel-ink);font-weight:600}
-.themebtn{position:absolute;top:14px;right:max(5vw,16px);z-index:2;min-height:40px;width:40px;padding:0;justify-content:center;border-radius:99px;background:var(--paper);border:1px solid var(--line2);color:var(--ink);font-size:18px}.themebtn:hover{border-color:var(--yel)}
 .board{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(20px,4vw,48px);margin-top:28px;position:relative;z-index:1}
 .bar{display:flex;height:40px;border-radius:10px;overflow:hidden;background:var(--paper);gap:3px}
 .bar span{display:block;height:100%;transition:width .5s}
@@ -135,10 +134,9 @@ header .cta{position:relative;z-index:1;margin-top:18px}
 @media(max-width:700px){.board{grid-template-columns:minmax(0,1fr)}.card .head{padding-right:0}.stamp{top:14px;right:12px;font-size:10.5px;padding:4px 7px}.tile>h3,.card .head>:first-child{padding-right:84px}.verdicts .stamp{position:static}.meta a,.meta span:has(a){white-space:normal;overflow-wrap:anywhere;min-width:0}.cal li{grid-template-columns:5em minmax(0,1fr)}.cal li .tag{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.bar span{transition:none}}
 </style>
-<script>try{const t=localStorage.getItem('vc-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body>
-<header class="band"><button class="themebtn" id="themebtn" type="button" aria-label="Wissel tussen licht en donker"></button><div class="wrap">
+<header class="band"><div class="wrap">
   <h1>Voorspellingschecker<span class="sticker">checkt alles</span></h1>
   <p>Checkt alle voorspellingen. Voorspelling gezien? Stuur een tip naar De Voorspellingschecker.</p>
   <div class="row pubonly cta"><a class="btn tipbtn" target="_blank" rel="noopener">Voorspelling insturen</a><a class="btn ghost" href="https://x.com/voorspellingchk" target="_blank" rel="noopener">Volg @voorspellingchk</a></div>
@@ -613,11 +611,6 @@ document.addEventListener('input',e=>{const t=e.target;
 });
 
 /* ---------- licht/donker ---------- */
-const themeBtn=$('#themebtn'),mqLight=matchMedia('(prefers-color-scheme: light)');
-const curTheme=()=>document.documentElement.dataset.theme||(mqLight.matches?'light':'dark');
-const paintTheme=()=>{const l=curTheme()==='light';themeBtn.textContent=l?'🌙':'☀️';themeBtn.title=l?'Donkere weergave':'Lichte weergave'};
-themeBtn.onclick=()=>{const t=curTheme()==='light'?'dark':'light';document.documentElement.dataset.theme=t;try{localStorage.setItem('vc-theme',t)}catch(e){}paintTheme()};
-mqLight.addEventListener('change',paintTheme);paintTheme();
 board();filters();list();
 const timer=setTimeout(()=>{if(!items.length)$('#list').innerHTML='<div class="empty">De database is nog niet bereikbaar. Probeer het later opnieuw.</div>'},10000);
 const onData=()=>{clearTimeout(timer);buildImgs();const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
