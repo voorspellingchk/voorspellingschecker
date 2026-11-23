@@ -100,7 +100,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertic
 .srcbox{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:var(--deep);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}.srcbox:hover{border-color:var(--yel-ink);color:var(--yel-ink)}td .srcbox{display:flex;width:max-content}
 .note{font-size:14px;color:var(--mute);max-width:70ch}
 .cand{border-left:4px solid var(--acc)}
-.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px}
+.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px;grid-auto-flow:row dense}
 .tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px var(--shadow);transition:transform .15s,box-shadow .15s;padding:18px 20px;position:relative}
 .tile[data-open]{cursor:pointer}.tile[data-open]:hover{transform:translateY(-2px);border-color:var(--yel-ink)}
 .tile a{color:inherit}
@@ -456,10 +456,10 @@ function dash(){
   const cats=Object.keys(byCat).sort((a,b)=>byCat[b].length-byCat[a].length),mx=Math.max(...cats.map(c=>byCat[c].length));
   const topics=`<div class="tile"><h3>Voorspellingen per onderwerp</h3>${cats.map(c=>`<div class="catrow" data-cat="${esc(c)}"><span>${c}</span><div style="width:${byCat[c].length/mx*100}%">${verdictBar(byCat[c],'catbar')}</div><span class="n">${byCat[c].length}</span></div>`).join('')}
    <div class="legend" style="color:var(--mute);margin-top:12px">${['correct','partial','incorrect','tooearly','open'].map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span>${V[k][0]}</span>`).join('')}</div></div>`;
-  $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)+tile('Voorspelling van de dag',dayP,'',dayKick)
+  $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)
     +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
     +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${upStamp?upStamp[0]:up.verdict||'open'}">${upStamp?upStamp[1]:V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
-    +recap+topics;
+    +recap+topics+tile('Voorspelling van de dag',dayP,'',dayKick);
   if(up)chart(up,document.querySelector('[data-fig2]'));
 }
 
