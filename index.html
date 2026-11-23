@@ -82,7 +82,7 @@ button:disabled{opacity:.45;cursor:default}
 .tweet{margin-top:12px;border-left:3px solid var(--yel);background:var(--bg);border-radius:0 8px 8px 0;padding-right:10px;padding:4px 0 4px 12px;font-size:15px;white-space:pre-wrap}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
 .count{font-size:13px;color:var(--mute)}
-.credit{font-size:12px;color:var(--mute);margin:4px 0 0;opacity:.85}.count.over{color:var(--no);font-weight:600}
+.credit{font-size:12px;color:var(--mute);margin:4px 0 0;opacity:.85}.credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}.credit a:hover{color:var(--ink)}.count.over{color:var(--no);font-weight:600}
 details.dossier{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 details.dossier summary{cursor:pointer;font:600 15px "Space Grotesk",sans-serif;min-height:32px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:12px}
@@ -382,7 +382,7 @@ function chart(p,box){
     const P=pts.map(q=>({x:X(yr(q.d)),y:Y(q.v),v:q.v,d:q.d})),last=P[P.length-1];
     g+=`<g class="meas"${!played&&!anim?' opacity="0"':''}><polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${P.map(o=>o.x+','+o.y).join(' ')}"/>`+pts.map(q=>`<circle cx="${X(yr(q.d))}" cy="${Y(q.v)}" r="${said!=null&&yr(q.d)>=said?4.5:3}" fill="${q.b?'var(--paper)':'var(--ink)'}" stroke="var(--ink)" stroke-width="1.5"><title>${fmt(q.d)}: ${q.v}</title></circle>`).join('')+`<circle class="head" r="6" fill="var(--ink)" stroke="var(--paper)" stroke-width="2" opacity="0"/><text class="vcount" x="${W-R}" y="${stack?15:T-10}" text-anchor="end" font-size="13" font-weight="700" fill="var(--ink)">${esc(cnt(last.d,last.v,true))}</text></g>`;
     if(said!=null&&ref!=null)g+=`<circle cx="${X(said)}" cy="${Y(ref)}" r="6.5" fill="var(--yel)" stroke="var(--deep)" stroke-width="2"/>`;
-    g+=`<text x="${W-4}" y="${H-3}" text-anchor="end" font-size="10" fill="var(--mute)" opacity=".7">@voorspellingchk</text>`;
+    g+=`<a href="https://x.com/voorspellingchk" target="_blank" rel="noopener"><text x="${W-4}" y="${H-3}" text-anchor="end" font-size="10" fill="var(--mute)" opacity=".7">@voorspellingchk</text></a>`;
     s.innerHTML=g;
     if(anim&&P.length){const my=tok,poly=s.querySelector('.meas polyline'),cs=[...s.querySelectorAll('.meas circle:not(.head)')],hd=s.querySelector('.meas .head'),vc=s.querySelector('.vcount');
       let ri=-1,fv=P[0].v,dv=P[0].v,ts=0;const xa=P[0].x,xb=last.x,dur=Math.min(3200,Math.max(1300,P.length*170)),t0=performance.now();cs.forEach(c=>c.style.opacity=0);hd.setAttribute('opacity','1');
@@ -396,7 +396,10 @@ function chart(p,box){
   if(!played){const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&s.clientWidth){played=true;io.disconnect();draw(true)}},{threshold:.35});io.observe(box)}
 }
 const dataSrc=p=>{const m=p.metric||{};if(m.source)return m.source;const k=(m.label||'').match(/\(([^)]+)\)/);if(k&&/[A-Z]{2,}|Met Office|Copernicus|Forbes/.test(k[1]))return k[1].replace(/,.*$/,'').trim();const c=[...(p.checks||[])].reverse().find(c=>c.sources&&c.value!=null&&c.value!=='');return c?c.sources.replace(/https?:\/\/\S+/g,'').replace(/^[\s·,;]+|[\s·,;]+$/g,'').trim():''};
-const credit=p=>{const s=dataSrc(p);return `<p class="credit">${s?`Bron data: ${esc(s)} · `:''}Grafiek: @voorspellingchk · voorspellingschecker.nl</p>`};
+const SRC_URLS=[[/NSIDC/i,'https://nsidc.org/data/seaice_index'],[/HadCRUT|Met Office/i,'https://www.metoffice.gov.uk/hadobs/hadcrut5/'],[/Copernicus/i,'https://climate.copernicus.eu/'],[/WMO/,'https://wmo.int/'],[/IKNL|Kankerregistratie/i,'https://iknl.nl/nkr-cijfers'],[/Forbes/i,'https://www.forbes.com/real-time-billionaires/'],[/CoinMarketCap/i,'https://coinmarketcap.com/currencies/bitcoin/'],[/KNMI/,'https://www.knmi.nl/'],[/CBS/,'https://www.cbs.nl/nl-nl/cijfers']];
+const dataSrcUrl=(p,s)=>{const m=p.metric||{};if(/^https:\/\//.test(m.sourceUrl||''))return m.sourceUrl;const hit=SRC_URLS.find(([r])=>r.test(s));if(hit)return hit[1];const c=[...(p.checks||[])].reverse().find(c=>c.value!=null&&c.value!==''&&(c.url||c.sources));return c?srcUrl(c):''};
+const xa=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>`:t;
+const credit=p=>{const s=dataSrc(p),u=s?dataSrcUrl(p,s):'';return `<p class="credit">${s?`Bron data: ${xa(u,esc(s))} · `:''}Grafiek: ${xa('https://x.com/voorspellingchk','@voorspellingchk')} · ${xa('https://voorspellingschecker.nl/','voorspellingschecker.nl')}</p>`};
 const chartLegend=p=>`<div class="legend" style="color:var(--mute);margin-top:8px"><span><span class="dot" style="background:var(--ink)"></span>gemeten</span><span><span class="dot" style="background:var(--yel)"></span>moment van voorspellen (verticale lijn)</span><span><span class="dot" style="background:transparent;border:2px solid var(--yel)"></span>voorspelde route${p.metric&&p.metric.routes&&p.metric.routes.length>1?"s":""} naar de doelwaarde</span><span><span class="dot" style="background:var(--deep);border:1px solid var(--line2)"></span>verleden</span>${trendOf(chartPts(p))?'<span><span class="dot" style="background:var(--early)"></span>trendlijn (alle metingen)</span>':''}</div>`;
 
 /* ---------- overview ---------- */
@@ -497,7 +500,7 @@ async function scan(){
     const res=await sample.json(`Je bent redacteur van het X-account "Voorspellingschecker". Zoek in de tekst hieronder uitspraken die als TOETSBARE voorspelling over de toekomst kunnen gelden, gedaan door bekende of gezaghebbende personen (wetenschappers, columnisten, politici, bestuurders, topmensen uit bedrijfsleven of instituten, opiniemakers). Sla vage verwachtingen, beleidsvoornemens zonder toetsbare uitkomst en uitspraken van anonieme personen over.
 Bron: ${JSON.stringify(meta)}. Datum van vandaag: ${today()}.
 Geef ALLEEN een JSON-array terug, leeg als er niets is. Per voorspelling:
-{"who":"naam","role":"functie/kwalificatie kort","quote":"letterlijke kernzin uit de tekst, max 25 woorden","claim":"de voorspelling als één heldere, toetsbare zin in het Nederlands, met wat/wanneer","topic":"onderwerp in 1-3 woorden","saidOn":"YYYY-MM-DD","targetDate":"YYYY-MM-DD of null (als de spreker een jaar noemt: 31 december van dat jaar; 'binnen 5 jaar' = saidOn+5 jaar)","metric":{"label":"meetbare grootheid","unit":"eenheid","baseline":getal of null,"target":getal of null,"source":"waar de meetdata vandaan komt, bv. CBS of NSIDC"} of null als er geen meetbare grootheid is,"tweet":"tweet in het Nederlands, max 250 tekens, neutraal van toon, begint met 🔮, met naam en de voorspelling, zonder hashtags"}
+{"who":"naam","role":"functie/kwalificatie kort","quote":"letterlijke kernzin uit de tekst, max 25 woorden","claim":"de voorspelling als één heldere, toetsbare zin in het Nederlands, met wat/wanneer","topic":"onderwerp in 1-3 woorden","saidOn":"YYYY-MM-DD","targetDate":"YYYY-MM-DD of null (als de spreker een jaar noemt: 31 december van dat jaar; 'binnen 5 jaar' = saidOn+5 jaar)","metric":{"label":"meetbare grootheid","unit":"eenheid","baseline":getal of null,"target":getal of null,"source":"waar de meetdata vandaan komt, bv. CBS of NSIDC","sourceUrl":"link naar die dataset of null"} of null als er geen meetbare grootheid is,"tweet":"tweet in het Nederlands, max 250 tekens, neutraal van toon, begint met 🔮, met naam en de voorspelling, zonder hashtags"}
 TEKST:
 ${text.slice(0,60000)}`,{modelTier:'complex'});
     const arr=Array.isArray(res)?res:[];
