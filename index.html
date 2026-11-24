@@ -82,6 +82,8 @@ button:disabled{opacity:.45;cursor:default}
 .tweet{margin-top:12px;border-left:3px solid var(--yel);background:var(--bg);border-radius:0 8px 8px 0;padding-right:10px;padding:4px 0 4px 12px;font-size:15px;white-space:pre-wrap}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
 .count{font-size:13px;color:var(--mute)}
+.sitefoot{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);font-size:14px}.sitefoot .wrap{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.sitefoot a{color:inherit}
+.themeseg{display:inline-flex;gap:2px;border:1px solid var(--line);border-radius:99px;padding:3px;background:var(--paper)}.themeseg button{all:unset;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:99px;color:var(--mute)}.themeseg button:hover{color:var(--ink)}.themeseg button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}.themeseg button:focus-visible{outline:2px solid var(--yel-ink);outline-offset:1px}
 .credit{font-size:12px;color:var(--mute);margin:4px 0 0;opacity:.85}.credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}.credit a:hover{color:var(--ink)}.count.over{color:var(--no);font-weight:600}
 details.dossier{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 details.dossier summary{cursor:pointer;font:600 15px "Space Grotesk",sans-serif;min-height:32px}
@@ -135,6 +137,7 @@ header .cta{position:relative;z-index:1;margin-top:18px}
 @media(max-width:700px){.board{grid-template-columns:minmax(0,1fr)}.card .head{padding-right:0}.stamp{top:14px;right:12px;font-size:10.5px;padding:4px 7px}.tile>h3,.card .head>:first-child{padding-right:84px}.verdicts .stamp{position:static}.meta a,.meta span:has(a){white-space:normal;overflow-wrap:anywhere;min-width:0}.cal li{grid-template-columns:5em minmax(0,1fr)}.cal li .tag{grid-column:2}}
 @media(prefers-reduced-motion:reduce){.bar span{transition:none}}
 </style>
+<script>try{const t=localStorage.getItem('vc-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body>
 <header class="band"><div class="wrap">
@@ -197,6 +200,12 @@ header .cta{position:relative;z-index:1;margin-top:18px}
   <div id="cands" style="margin-top:20px"></div>
 </div></section>
 </main>
+<footer class="sitefoot"><div class="wrap">
+  <span>Voorspellingschecker · <a href="https://x.com/voorspellingchk" target="_blank" rel="noopener">@voorspellingchk</a></span>
+  <div class="themeseg" role="group" aria-label="Weergave">
+    <button type="button" data-theme-set="auto">Automatisch</button><button type="button" data-theme-set="light">☀ Licht</button><button type="button" data-theme-set="dark">☾ Donker</button>
+  </div>
+</div></footer>
 <div id="toast" role="status"></div>
 <script>window.VC_PUBLIC={"tipUrl": "https://docs.google.com/forms/d/e/1FAIpQLScsHrmij3OBocbzei1y7ayw-ZAqygWyX8HMBcVAxEtMBsrI0Q/viewform", "data": "data.json"};</script>
 <script>
@@ -582,6 +591,9 @@ function route(){const h=location.hash.slice(1),pv=h.startsWith('persoon/');cons
   if(pv){let w=h.slice(8);try{w=decodeURIComponent(w)}catch(e){}const nw=w!==personWho||$('#person').dataset.shown!=='1';personWho=w;person();$('#person').dataset.shown='1';if(nw)requestAnimationFrame(()=>{const y=$('#v-persoon').getBoundingClientRect().top+scrollY-document.querySelector('nav').offsetHeight;scrollTo({top:Math.max(0,y),behavior:'instant'})})}else $('#person').dataset.shown='';
   document.querySelectorAll('nav a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v));if(v==='kalender')cal()}
 addEventListener('hashchange',route);route();
+{const segs=()=>document.querySelectorAll('[data-theme-set]');const curT=()=>{try{return localStorage.getItem('vc-theme')||'auto'}catch(e){return 'auto'}};
+ const paintSeg=()=>{const c=curT();segs().forEach(b=>b.setAttribute('aria-pressed',b.dataset.themeSet===c))};
+ segs().forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.themeSet;try{t==='auto'?localStorage.removeItem('vc-theme'):localStorage.setItem('vc-theme',t)}catch(e){}if(t==='auto')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t;paintSeg()}));paintSeg()}
 function openPred(id){
   filt='all';q='';cat='';
   if(location.hash!=='#ledger')history.pushState(null,'','#ledger');
@@ -621,7 +633,7 @@ document.addEventListener('input',e=>{const t=e.target;
 board();filters();list();
 const timer=setTimeout(()=>{if(!items.length)$('#list').innerHTML='<div class="empty">De database is nog niet bereikbaar. Probeer het later opnieuw.</div>'},10000);
 const onData=()=>{clearTimeout(timer);buildImgs();const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
-    board();list();open.forEach(id=>{const c=document.getElementById(id);if(c)c.querySelector('details').open=true});if(!$('#v-kalender').hidden)cal();dash()};
+    board();list();open.forEach(id=>{const c=document.getElementById(id);if(c)c.querySelector('details').open=true});if(!$('#v-kalender').hidden)cal();if(!$('#v-persoon').hidden)person();dash()};
 if(PUB){fetch(PUB.data||'data.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{items=(d.predictions||d).filter(p=>p&&p.who&&p.claim);onData()}).catch(()=>{clearTimeout(timer);$('#list').innerHTML='<div class="empty">De voorspellingen konden niet worden geladen.</div>'})}
 else{
 claude.use('db').then(d=>{db=d;if(!d){clearTimeout(timer);$('#list').innerHTML='<div class="empty">Opslag is in deze weergave niet beschikbaar. Open de pagina via claude.ai terwijl je bent ingelogd.</div>';return}
