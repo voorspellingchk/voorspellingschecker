@@ -504,7 +504,7 @@ function dash(){
   $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)
     +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
     +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${upStamp?upStamp[0]:up.verdict||'open'}">${upStamp?upStamp[1]:V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}${predSrc(up)?' · '+predSrc(up):''}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
-    +recap+topics+tile('Voorspelling van de dag',dayP,'',dayKick);
+    +tile('Voorspelling van de dag',dayP,chkNote(dayP),dayKick)+topics+recap;
   if(up)chart(up,document.querySelector('[data-fig2]'));
 }
 
