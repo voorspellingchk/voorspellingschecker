@@ -256,22 +256,6 @@
   ">yearly check<"
  ],
  [
-  "'Bron voorspelling'",
-  "'Source of prediction'"
- ],
- [
-  "'Bron check'",
-  "'Source of check'"
- ],
- [
-  "Bron voorspelling nog niet gevonden",
-  "Source of prediction not found yet"
- ],
- [
-  "Gecheckt ${fmt(c.date)}: ",
-  "Checked ${fmt(c.date)}: "
- ],
- [
   "'Niets gevonden met dit filter.'",
   "'Nothing matches this filter.'"
  ],
@@ -388,10 +372,6 @@
   "<span class=\"sticker\">checks everything</span>"
  ],
  [
-  "'Bekijk op X'",
-  "'View on X'"
- ],
- [
   "voorspelde route${",
   "predicted path${"
  ],
@@ -446,5 +426,41 @@
  [
   "return 'Overig'}",
   "return 'Other'}"
+ ],
+ [
+  "'<span class=\"tag\">bron nog niet gevonden</span>'",
+  "'<span class=\"tag\">source not found yet</span>'"
+ ],
+ [
+  "'onze post op X'",
+  "'our post on X'"
+ ],
+ [
+  "' · bron: '",
+  "' · source: '"
+ ],
+ [
+  "'Bron voorspelling'",
+  "'Source of prediction'"
+ ],
+ [
+  "'Bron check'",
+  "'Source of check'"
+ ],
+ [
+  "Bron voorspelling nog niet gevonden",
+  "Source of prediction not found yet"
+ ],
+ [
+  "'Bekijk op X'",
+  "'View on X'"
+ ],
+ [
+  "<span>Gezegd ${fmt(",
+  "<span>Said ${fmt("
+ ],
+ [
+  ">Gecheckt ${fmt(c.date)}${chkSrc",
+  ">Checked ${fmt(c.date)}${chkSrc"
  ]
 ]

@@ -96,6 +96,7 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertic
 .cal{padding:0;margin:0}.cal time{font:700 16px "Space Grotesk",sans-serif;white-space:nowrap}
 .tag{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
 .empty{padding:36px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:8px}
+.srcl{color:inherit;text-decoration:underline;text-decoration-color:var(--yel-ink);text-underline-offset:2px}.srcl:hover{color:var(--yel-ink)}
 .srcbox{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:var(--deep);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}.srcbox:hover{border-color:var(--yel-ink);color:var(--yel-ink)}td .srcbox{display:flex;width:max-content}
 .note{font-size:14px;color:var(--mute);max-width:70ch}
 .cand{border-left:4px solid var(--acc)}
@@ -322,18 +323,24 @@ const origSrc=p=>p.sourceUrl&&!isOwnX(p.sourceUrl)?p.sourceUrl:'';
 const xPost=p=>p.xUrl||(isOwnX(p.sourceUrl)?p.sourceUrl:'');
 const lastChkSrc=p=>(p.checks||[]).map(srcUrl).filter(u=>u&&!isOwnX(u)).pop()||'';
 const srcBtns=p=>{const o=origSrc(p),x=xPost(p),c=lastChkSrc(p),a=(u,t)=>`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${t}</a>`;return (o?a(o,'Bron voorspelling'):(PUB?'':'<span class="count" style="align-self:center">Bron voorspelling nog niet gevonden</span>'))+(c&&c!==o?a(c,'Bron check'):'')+(x?a(x,'Bekijk op X'):'')};
+const hostOf=u=>{try{const h=new URL(u).hostname.replace(/^www\./,'');return /^(x|twitter)\.com$/.test(h)?'X':h}catch{return''}};
+const sA=(u,t)=>u?`<a class="srcl" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">${esc(t)}</a>`:esc(t);
+const predSrc=p=>{const u=origSrc(p),n=p.outlet||(u?hostOf(u):'');return n?sA(u,n):''};
+const noteTxt=c=>(c.note||'').replace(/\s*(?:Bron|Source):\s*[^.]*\.?\s*$/,'');
+const chkSrc=c=>{const u=srcUrl(c),own=isOwnX(u),r=srcRest(c),m=(c.note||'').match(/(?:Bron|Source):\s*([^.]+)\.?\s*$/);const n=(m&&m[1].trim())||(r&&r.length<=40?r:'')||(u&&!own?hostOf(u):'');return n?sA(own?'':u,n):''};
+const xLink=p=>{const x=xPost(p);return x?sA(x,'onze post op X'):''};
 function card(p,ro){
   const v=p.verdict||'open',checks=p.checks||[];
   return `<article class="card" id="${ro?'pc':'c'}-${esc(p.id)}">
   <span class="stamp v-${v}">${V[v][0]}</span>
   <div class="head">${whoLine(p)}
   <p class="claim">${esc(p.claim)}</p>
-  <div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${origSrc(p)?`<a href="${esc(origSrc(p))}" target="_blank" rel="noopener">${esc(p.outlet)}</a>`:esc(p.outlet)}</span>`:''}${p.targetDate?`<span>Doeldatum ${fmt(p.targetDate)}</span>`:''}<span>${p.nextCheck?`Volgende check <b style="color:${p.nextCheck<=today()?'var(--no)':'inherit'}">${fmt(p.nextCheck)}</b>`:'Afgerond'}</span>${p.recurrence==='yearly'?'<span class="tag">jaarlijkse check</span>':''}${p.by==='scan'?'<span class="tag">auto-scan</span>':''}${p.by==='x-archief'?'<span class="tag">X-archief</span>':''}</div></div>
+  <div class="meta"><span>Gezegd ${fmt(p.saidOn)}${predSrc(p)?' · '+predSrc(p):''}</span>${!origSrc(p)&&!PUB?'<span class="tag">bron nog niet gevonden</span>':''}${xLink(p)?`<span>${xLink(p)}</span>`:''}${p.targetDate?`<span>Doeldatum ${fmt(p.targetDate)}</span>`:''}<span>${p.nextCheck?`Volgende check <b style="color:${p.nextCheck<=today()?'var(--no)':'inherit'}">${fmt(p.nextCheck)}</b>`:'Afgerond'}</span>${p.recurrence==='yearly'?'<span class="tag">jaarlijkse check</span>':''}${p.by==='scan'?'<span class="tag">auto-scan</span>':''}${p.by==='x-archief'?'<span class="tag">X-archief</span>':''}</div></div>
   ${p.quote?`<p class="note" style="margin:8px 0 0">“${esc(p.quote)}”</p>`:''}
-  ${(PUB||ro)?`<div class="row">${srcBtns(p)}</div>`:`<div class="row">${srcBtns(p)}</div><div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
+  ${(PUB||ro)?'':`<div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
   <details class="dossier"><summary>Dossier, checks en oordeel${checks.length?` (${checks.length})`:''}</summary>${imgCredit(p)}
    ${p.metric?.label?`<div class="fig" data-fig="${esc(p.id)}" style="height:280px"><svg></svg></div>${chartLegend(p)}<p class="count">${esc(p.metric.label)}${p.metric.unit?' ('+esc(p.metric.unit)+')':''}${p.metric.target!=null?` · voorspelde waarde: ${esc(p.metric.target)}`:''}</p>${credit(p)}`:''}
-   ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${(PUB||ro)?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}</td><td class="v-${c.verdict}"><b>${EMO[c.verdict]}</b>${srcLink(c)}</td><td>${esc(c.value??'')}</td><td>${esc(c.note)}${srcRest(c)?`<br><span class="count">${esc(srcRest(c))}</span>`:''}</td>${(PUB||ro)?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
+   ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${(PUB||ro)?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}${chkSrc(c)?`<br>${chkSrc(c)}`:''}</td><td class="v-${c.verdict}"><b>${EMO[c.verdict]}</b></td><td>${esc(c.value??'')}</td><td>${esc(noteTxt(c))}${srcRest(c).length>40?`<br><span class="count">${esc(srcRest(c))}</span>`:''}</td>${(PUB||ro)?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
    ${(PUB||ro)?(ro&&!PUB?`<div class="row"><button class="ghost" data-open="${esc(p.id)}">Check toevoegen of bewerken</button></div>`:''):`   <h3 style="font-size:17px;margin-top:18px">Nieuwe check</h3>
    <div class="grid">
     <label>Datum<input type="date" id="cd-${esc(p.id)}" value="${today()}"></label>
@@ -440,7 +447,7 @@ const numChecks=p=>(p.checks||[]).filter(c=>c.value!==''&&c.value!=null&&!isNaN(
 function tile(title,p,extra='',kicker=''){
   if(!p)return `<div class="tile"><h3>${title}</h3><p class="note">Nog niets om te tonen.</p></div>`;
   const v=p.verdict||'open';
-  return `<div class="tile" data-open="${esc(p.id)}"><h3>${title}</h3><span class="stamp v-${v}">${V[v][0]}</span><div class="head">${kicker?`<p class="kicker">${kicker}</p>`:''}${whoLine(p)}<p class="claim">${esc(p.claim)}</p><div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${esc(p.outlet)}</span>`:''}</div></div>${extra}</div>`;
+  return `<div class="tile" data-open="${esc(p.id)}"><h3>${title}</h3><span class="stamp v-${v}">${V[v][0]}</span><div class="head">${kicker?`<p class="kicker">${kicker}</p>`:''}${whoLine(p)}<p class="claim">${esc(p.claim)}</p><div class="meta"><span>Gezegd ${fmt(p.saidOn)}${predSrc(p)?' · '+predSrc(p):''}</span></div></div>${extra}</div>`;
 }
 function verdictBar(list,cls='minibar'){const n={correct:0,partial:0,incorrect:0,tooearly:0,open:0};list.forEach(p=>n[p.verdict||'open']++);const t=list.length||1;return `<div class="${cls}">${['correct','partial','incorrect','tooearly','open'].map(k=>n[k]?`<span title="${V[k][1]}: ${n[k]}" style="width:${n[k]/t*100}%;background:var(${VC[k]})"></span>`:'').join('')}</div>`}
 function track(p){
@@ -465,7 +472,7 @@ function dash(){
   // last correct / incorrect
   const lastOf=v=>items.filter(p=>p.verdict===v&&p.checks?.length).sort((a,b)=>lastCheck(b).localeCompare(lastCheck(a)))[0];
   const lc=lastOf('correct'),li=lastOf('incorrect');
-  const chkNote=p=>{if(!p)return'';const c=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date))[0];return c?`<p class="note" style="margin:10px 0 0">Gecheckt ${fmt(c.date)}: ${esc(c.note)}</p>`:''};
+  const chkNote=p=>{if(!p)return'';const c=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date))[0];return c?`<p class="note" style="margin:10px 0 0">Gecheckt ${fmt(c.date)}${chkSrc(c)?' · '+chkSrc(c):''}: ${esc(noteTxt(c))}</p>`:''};
   // update
   const ups=items.filter(p=>p.metric&&numChecks(p).length).sort((a,b)=>((FINAL.includes(a.verdict)?1:0)-(FINAL.includes(b.verdict)?1:0))||lastCheck(b).localeCompare(lastCheck(a)));
   upIdx=((upIdx%ups.length)+ups.length)%(ups.length||1);
@@ -496,7 +503,7 @@ function dash(){
    <div class="legend" style="color:var(--mute);margin-top:12px">${['correct','partial','incorrect','tooearly','open'].map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span>${V[k][0]}</span>`).join('')}</div></div>`;
   $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)
     +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
-    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${upStamp?upStamp[0]:up.verdict||'open'}">${upStamp?upStamp[1]:V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
+    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${upStamp?upStamp[0]:up.verdict||'open'}">${upStamp?upStamp[1]:V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}${predSrc(up)?' · '+predSrc(up):''}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
     +recap+topics+tile('Voorspelling van de dag',dayP,'',dayKick);
   if(up)chart(up,document.querySelector('[data-fig2]'));
 }
@@ -670,7 +677,7 @@ function agenda(all){
   return{days,late,rest:q.length}}
 function pcardHtml(o,ag){const s=pst(o.key),t=ptext(o),k=esc(o.key),kd={prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[o.kind];
     return `<article class="pcard" data-pk="${k}"><div class="pimg"><canvas width="1080" height="1350" data-pc="${k}"></canvas></div><div class="pbody">
-     <p class="pkind">${ag?`<span class="ptime">${ag.time}</span> `:''}<b>${kd}</b> · ${fmt(o.date)} · ${esc(o.p.who)}${s.skip?' · <i>overgeslagen</i>':''}${ag?(ag.fixed?' · <span class="tag">vastgezet</span>':' · <span class="tag">voorstel</span>'):''}</p>
+     <p class="pkind">${ag?`<span class="ptime">${ag.time}</span> `:''}<b>${kd}</b> · ${fmt(o.date)} · ${esc(o.p.who)}${predSrc(o.p)?' · bron: '+predSrc(o.p):''}${o.c&&chkSrc(o.c)?' · check: '+chkSrc(o.c):''}${s.skip?' · <i>overgeslagen</i>':''}${ag?(ag.fixed?' · <span class="tag">vastgezet</span>':' · <span class="tag">voorstel</span>'):''}</p>
      <label>Posttekst <span class="count" data-pn="${k}"></span><textarea data-ptext="${k}" style="min-height:150px">${esc(t)}</textarea></label>
      <details class="preply"><summary>Eerste reply, met de bronlink</summary><pre>${esc(preply(o))}</pre><button class="ghost" data-pcopy="r:${k}">Reply kopiëren</button></details>
      <div class="row">
@@ -877,7 +884,7 @@ function openPred(id){
   requestAnimationFrame(()=>{const y=c.getBoundingClientRect().top+scrollY-(document.querySelector('nav').offsetHeight+12);scrollTo({top:y,behavior:'instant'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1600)});
 }
 function renderAll(){board();filters();list();if(!$('#v-kalender').hidden)cal();if(!$('#v-post').hidden)post();if(!$('#v-persoon').hidden)person();dash()}
-document.addEventListener('click',e=>{const t=e.target.closest('button,[data-person],[data-open],[data-cat]');if(!t||t.dataset.person!=null)return;const d=t.dataset;
+document.addEventListener('click',e=>{if(e.target.closest('a.srcl'))return;const t=e.target.closest('button,[data-person],[data-open],[data-cat]');if(!t||t.dataset.person!=null)return;const d=t.dataset;
   if(d.up){upIdx+=+d.up;dash();return}
   if(d.cat){e.preventDefault();cat=d.cat;filt='all';q='';location.hash='ledger';renderAll();return}
   if(d.f){filt=d.f;filters();list()}

@@ -186,6 +186,7 @@ child
 chip
 chk
 chknote
+chksrc
 choose
 chrome
 cijfers
@@ -544,6 +545,7 @@ hist
 history
 hit
 hostname
+hostof
 hous
 hover
 how
@@ -603,6 +605,7 @@ isintersecting
 isn
 isnan
 isorg
+isownx
 istypesupported
 items
 its
@@ -638,6 +641,7 @@ language
 last
 lastcheck
 lastchecked
+lastchksrc
 lastkey
 lastn
 lastof
@@ -771,6 +775,7 @@ normal
 not
 note
 notes
+notetxt
 nothing
 now
 nowrap
@@ -811,6 +816,7 @@ orange
 order
 org
 organi
+origsrc
 other
 out
 outcome
@@ -911,6 +917,7 @@ prediction
 predictionchecker
 predictionchk
 predictions
+predsrc
 prefers
 preply
 presented
@@ -1135,7 +1142,9 @@ sport
 spotted
 src
 srcbox
+srcbtns
 srclink
+srcrest
 srcurl
 stack
 stamp
@@ -1372,6 +1381,7 @@ wrong
 www
 xbtn
 xlink
+xpost
 xsall
 xurl
 year
