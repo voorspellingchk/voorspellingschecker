@@ -135,6 +135,7 @@ body:not(.pub) .pubonly,body.pub .edonly{display:none!important}
 .preply{margin-top:10px}.preply pre{white-space:pre-wrap;font:14px/1.5 "IBM Plex Sans",sans-serif;background:var(--raised);padding:10px 12px;border-radius:10px;margin:8px 0}
 .pst{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.pst label{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:15px}
 .count.over{color:var(--no)}
+.agday{font-size:22px;margin:26px 0 10px;display:flex;gap:10px;align-items:baseline}.agday.late{color:var(--no)}.agtop{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin:0 0 6px}.ptime{display:inline-block;background:var(--yel);color:var(--on-yel);font-weight:700;border-radius:6px;padding:1px 7px;font-size:13px}.agmini{margin:6px 0;color:var(--mute)}.pplan input[type=date]{width:auto;padding:4px 6px;font-size:14px}.pplan select{width:auto;padding:4px 6px;font-size:14px}
 .pst input[type=checkbox],#v-post .tools input[type=checkbox]{width:auto;flex:none;margin:0}.pst label,#v-post .tools label{white-space:nowrap;margin:0}
 @media (max-width:700px){.pcard{grid-template-columns:1fr}.pimg{max-width:360px}}
 .tile .who{font:700 17px "Space Grotesk",sans-serif}.tile .role{color:var(--mute);font-size:14px}
@@ -602,7 +603,7 @@ function person(){
 /* ---------- routing & events ---------- */
 const VIEWS=PUB?['overzicht','ledger','kalender','over']:['overzicht','ledger','kalender','nieuw','post'];
 /* ---------- post studio (editor only) ---------- */
-let POSTS={},pfilt='todo',plimit=12;
+let POSTS={},pfilt='agenda',plimit=12;
 const pid=k=>k.replace(/[^\w-]/g,'_');
 const VLABEL={correct:['CORRECT','#3ed68c'],incorrect:['ONJUIST','#ff6b6b'],partial:['DEELS CORRECT','#ff9f43'],tooearly:['TE VROEG','#8fb3ff']};
 const num=v=>{v=+v;return Math.abs(v)>=1000?Math.round(v).toLocaleString('nl-NL'):String(+v.toFixed(2)).replace('.',',')};
@@ -642,15 +643,25 @@ const pcap=o=>ptext(o)+'\n\nBron en volledige check: link in bio (voorspellingsc
 const xurl=t=>'https://x.com/intent/post?text='+encodeURIComponent(t);
 const burl=t=>'https://bsky.app/intent/compose?text='+encodeURIComponent(t);
 const graphemes=t=>{try{return [...new Intl.Segmenter().segment(t)].length}catch{return [...t].length}};
-function post(){
-  const box=$('#posts');if(!box)return;const sw=$('#psound');if(sw)sw.checked=SOUND;const vp=$('#pvopace');if(vp)vp.checked=VOPACE;
-  if(!items.length){box.innerHTML='<div class="empty">Laden…</div>';return}
-  const all=postList(),L=all.filter(o=>{const s=pst(o.key);return pfilt==='all'?true:pfilt==='done'?pdone(s):!pdone(s)&&!s.skip});
-  const n=all.filter(o=>{const s=pst(o.key);return !pdone(s)&&!s.skip}).length;
-  $('#pfilters').innerHTML=[['todo',`Te posten (${n})`],['done','Gepost'],['all','Alles']].map(([k,t])=>`<button class="chip" aria-pressed="${pfilt===k}" data-pf="${k}">${t}</button>`).join('');
-  box.innerHTML=L.length?L.slice(0,plimit).map(o=>{const s=pst(o.key),t=ptext(o),k=esc(o.key),kd={prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[o.kind];
+const SLOTS=['08:00','20:30'],ADAYS=14;
+const addD=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+const dayLbl=d=>{const t=today(),w=new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});return d===t?'Vandaag · '+w:d===addD(t,1)?'Morgen · '+w:w.charAt(0).toUpperCase()+w.slice(1)};
+function agenda(all){
+  const open=all.filter(o=>{const s=pst(o.key);return !s.x&&!s.skip});
+  const fixed=open.filter(o=>pst(o.key).plan),auto=open.filter(o=>!pst(o.key).plan);
+  const rank=o=>o.kind==='check'&&['correct','incorrect','partial'].includes(o.c?.verdict)?0:o.kind==='anniversary'?1:o.kind==='check'?3:2;
+  const by=[0,1,2,3].map(r=>auto.filter(o=>rank(o)===r));const q=[];
+  while(by.some(b=>b.length))for(const b of by)if(b.length)q.push(b.shift());
+  const t=today(),hm=new Date().toTimeString().slice(0,5),days=[];
+  for(let n=0;n<ADAYS;n++){const d=addD(t,n);const fx=fixed.filter(o=>pst(o.key).plan===d).map(o=>({o,fixed:true}));
+    const free=SLOTS.filter((s,i)=>!(n===0&&s<hm)).length-fx.length,ad=[];for(let k=0;k<free&&q.length;k++)ad.push({o:q.shift(),fixed:false});
+    const its=fx.concat(ad);its.forEach((x,i)=>x.time=pst(x.o.key).ptime||SLOTS[Math.min(SLOTS.length-1,(n===0&&hm>SLOTS[0]?1:0)+i)]||SLOTS[SLOTS.length-1]);
+    its.sort((a,b)=>a.time.localeCompare(b.time));days.push({d,its})}
+  const late=fixed.filter(o=>pst(o.key).plan<t);
+  return{days,late,rest:q.length}}
+function pcardHtml(o,ag){const s=pst(o.key),t=ptext(o),k=esc(o.key),kd={prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[o.kind];
     return `<article class="pcard" data-pk="${k}"><div class="pimg"><canvas width="1080" height="1350" data-pc="${k}"></canvas></div><div class="pbody">
-     <p class="pkind"><b>${kd}</b> · ${fmt(o.date)} · ${esc(o.p.who)}${s.skip?' · <i>overgeslagen</i>':''}</p>
+     <p class="pkind">${ag?`<span class="ptime">${ag.time}</span> `:''}<b>${kd}</b> · ${fmt(o.date)} · ${esc(o.p.who)}${s.skip?' · <i>overgeslagen</i>':''}${ag?(ag.fixed?' · <span class="tag">vastgezet</span>':' · <span class="tag">voorstel</span>'):''}</p>
      <label>Posttekst <span class="count" data-pn="${k}"></span><textarea data-ptext="${k}" style="min-height:150px">${esc(t)}</textarea></label>
      <details class="preply"><summary>Eerste reply, met de bronlink</summary><pre>${esc(preply(o))}</pre><button class="ghost" data-pcopy="r:${k}">Reply kopiëren</button></details>
      <div class="row">
@@ -661,13 +672,32 @@ function post(){
       <a class="btn ghost" data-pb="${k}" href="${esc(burl(t))}" target="_blank" rel="noopener">Openen in Bluesky ↗</a>
       <button class="ghost" data-pcopy="i:${k}">Instagram: bijschrift kopiëren</button><button class="ghost" data-pcopy="v:${k}" title="Tekst voor een voice-over in CapCut, TikTok of Instagram">Voice-overtekst kopiëren</button>
      </div>
-     <div class="pst">${[['x','X'],['bsky','Bluesky'],['ig','Instagram']].map(([f,lb])=>`<label><input type="checkbox" data-pmark="${f}|${k}" ${s[f]?'checked':''}> Gepost op ${lb}${s[f]?` <span class="count">${fmt(s[f])}</span>`:''}</label>`).join('')}
+     <div class="pst"><label class="pplan">Gepland op <input type="date" data-pplan="${k}" value="${esc(s.plan||'')}"> <select data-pptime="${k}"><option value="">tijd</option>${['07:30','08:00','12:30','17:00','20:30','21:30'].map(x=>`<option ${s.ptime===x?'selected':''}>${x}</option>`).join('')}</select></label>${[['x','X'],['bsky','Bluesky'],['ig','Instagram']].map(([f,lb])=>`<label><input type="checkbox" data-pmark="${f}|${k}" ${s[f]?'checked':''}> Gepost op ${lb}${s[f]?` <span class="count">${fmt(s[f])}</span>`:''}</label>`).join('')}
       <button class="ghost" data-pskip="${k}">${s.skip?'Toch tonen':'Overslaan'}</button></div>
-    </div></article>`}).join('')+(L.length>plimit?`<div class="row" style="justify-content:center"><button class="ghost" data-pmore="1">Meer tonen (nog ${L.length-plimit})</button></div>`:''):`<div class="empty">${pfilt==='done'?'Nog niets gepost.':'Niets te posten. De wekelijkse run op maandagochtend voegt nieuwe posts toe.'}</div>`;
-  L.slice(0,plimit).forEach(o=>pcount(o.key));
+    </div></article>`}
+function post(){
+  const box=$('#posts');if(!box)return;const sw=$('#psound');if(sw)sw.checked=SOUND;const vp=$('#pvopace');if(vp)vp.checked=VOPACE;
+  if(!items.length){box.innerHTML='<div class="empty">Laden…</div>';return}
+  const all=postList();
+  const n=all.filter(o=>{const s=pst(o.key);return !pdone(s)&&!s.skip}).length;
+  $('#pfilters').innerHTML=[['agenda','📅 Agenda'],['todo',`Te posten (${n})`],['done','Gepost'],['all','Alles']].map(([k,t])=>`<button class="chip" aria-pressed="${pfilt===k}" data-pf="${k}">${t}</button>`).join('');
+  let shown=[];
+  if(pfilt==='agenda'){const A=agenda(all);let html=`<div class="agtop"><p class="note" style="margin:0">Twee posts per dag (8.00 en 20.30), afgewisseld: eerst afgeronde checks, dan jubilea, nieuwe voorspellingen en tussenstanden. Een post verdwijnt uit de agenda zodra je "Gepost op X" aanvinkt. Kies zelf een datum om een post vast te zetten.</p><div class="row" style="margin:0"><button class="ghost" data-pfix="1">Voorstellen vastzetten</button><button class="ghost" data-pics="1">Agenda kopiëren (.ics)</button></div></div>`;
+    if(A.late.length){html+=`<h3 class="agday late">Achterstallig</h3>`+A.late.map(o=>{shown.push(o);return pcardHtml(o,{time:pst(o.key).ptime||'',fixed:true})}).join('')}
+    let cnt=0;A.days.forEach(D=>{html+=`<h3 class="agday">${dayLbl(D.d)} <span class="count">${D.its.length?D.its.length+' post'+(D.its.length>1?'s':''):'niets gepland'}</span></h3>`;
+      D.its.forEach(x=>{if(cnt<plimit){shown.push(x.o);html+=pcardHtml(x.o,x)}else html+=`<p class="agmini"><span class="ptime">${x.time}</span> ${esc({prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[x.o.kind])} · ${esc(x.o.p.who)}</p>`;cnt++})});
+    if(cnt>plimit)html+=`<div class="row" style="justify-content:center"><button class="ghost" data-pmore="1">Meer kaarten tonen</button></div>`;
+    html+=`<p class="note">Daarna staan er nog ${A.rest} posts in de wachtrij.</p>`;box.innerHTML=html;window.__AG=A}
+  else{const L=all.filter(o=>{const s=pst(o.key);return pfilt==='all'?true:pfilt==='done'?pdone(s):!pdone(s)&&!s.skip});shown=L.slice(0,plimit);
+    box.innerHTML=L.length?shown.map(o=>pcardHtml(o)).join('')+(L.length>plimit?`<div class="row" style="justify-content:center"><button class="ghost" data-pmore="1">Meer tonen (nog ${L.length-plimit})</button></div>`:''):`<div class="empty">${pfilt==='done'?'Nog niets gepost.':'Niets te posten. De wekelijkse run op maandagochtend voegt nieuwe posts toe.'}</div>`}
+  shown.forEach(o=>pcount(o.key));
   const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);const o=all.find(x=>x.key===e.target.dataset.pc);if(o)drawCard(o,e.target)}}),{rootMargin:'300px'});
   box.querySelectorAll('canvas[data-pc]').forEach(c=>io.observe(c));
 }
+function agIcs(){const A=window.__AG;if(!A)return'';const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Voorspellingschecker//Agenda//NL'];const st=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  A.days.forEach(D=>D.its.forEach(x=>{const dt=D.d.replace(/-/g,'')+'T'+x.time.replace(':','')+'00';const sm=('Post: '+({prediction:'nieuwe voorspelling',anniversary:'jubileum',check:'check'}[x.o.kind])+' '+x.o.p.who).replace(/[,;]/g,' ');
+    L.push('BEGIN:VEVENT','UID:'+pid(x.o.key)+'-'+D.d+'@voorspellingschecker.nl','DTSTAMP:'+st,'DTSTART;TZID=Europe/Amsterdam:'+dt,'DURATION:PT15M','SUMMARY:'+sm,'DESCRIPTION:'+ptext(x.o).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/([,;])/g,'\\$1'),'END:VEVENT')}));
+  L.push('END:VCALENDAR');return L.join('\r\n')}
 function pcount(k){const t=document.querySelector(`[data-ptext="${CSS.escape(k)}"]`),c=document.querySelector(`[data-pn="${CSS.escape(k)}"]`);if(!t||!c)return;const n=graphemes(t.value);c.textContent=`${n} tekens · X max 280 · Bluesky max 300`;c.classList.toggle('over',n>280)}
 async function psave(k,patch){const id=pid(k),cur=POSTS[id]||{};const nx={...cur,...patch,key:k,updatedAt:new Date().toISOString()};POSTS[id]=nx;try{await db.doc('posts/'+id).set(nx)}catch{toast('Opslaan mislukt')}}
 /* --- image card --- */
@@ -851,7 +881,7 @@ document.addEventListener('click',e=>{const t=e.target.closest('button,[data-per
   else if(t.id==='clearc'){cands=[];candsRender()}
   else if(t.id==='ics')copy(ics());
 });
-document.addEventListener('click',e=>{const t=e.target.closest('[data-pf],[data-pmore],[data-pcopy],[data-pdl],[data-pci],[data-pskip],[data-pvid],[data-pplay],canvas[data-pc]');if(!t)return;const d=t.dataset;
+document.addEventListener('click',e=>{const t=e.target.closest('[data-pf],[data-pmore],[data-pcopy],[data-pdl],[data-pci],[data-pskip],[data-pfix],[data-pics],[data-pvid],[data-pplay],canvas[data-pc]');if(!t)return;const d=t.dataset;
   if(d.pf){pfilt=d.pf;plimit=12;post()}
   else if(d.pmore){plimit+=12;post()}
   else if(d.pcopy){const[kind,k]=[d.pcopy.slice(0,1),d.pcopy.slice(2)],o=postList().find(x=>x.key===k);if(o)copy(kind==='r'?preply(o):kind==='v'?voiceText(o):pcap(o),kind==='r'?'Reply gekopieerd':kind==='v'?'Voice-overtekst gekopieerd':'Bijschrift gekopieerd')}
@@ -860,12 +890,16 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-pf],[data-
   else if(d.pvid)pvideo(d.pvid,t);
   else if(d.pplay)pplay(d.pplay);
   else if(d.pc)pplay(d.pc);
+  else if(d.pfix){const A=window.__AG;if(A){const w=[];A.days.forEach(D=>D.its.forEach(x=>{if(!x.fixed)w.push(psave(x.o.key,{plan:D.d,ptime:x.time}))}));Promise.all(w).then(()=>{toast(`${w.length} posts vastgezet`);post()})}}
+  else if(d.pics){copy(agIcs(),'Agenda gekopieerd; sla op als .ics en importeer in je agenda')}
   else if(d.pskip){const s=pst(d.pskip);psave(d.pskip,{skip:!s.skip}).then(post)}
 });
 document.addEventListener('change',e=>{const t=e.target;
   if(t.id==='pvopace'){VOPACE=t.checked;try{localStorage.setItem('vc-vopace',VOPACE?'on':'off')}catch{}}
   if(t.id==='psound'){SOUND=t.checked;try{localStorage.setItem('vc-sound',SOUND?'on':'off')}catch{}}
   if(t.dataset.pmark){const[f,k]=[t.dataset.pmark.split('|')[0],t.dataset.pmark.slice(t.dataset.pmark.indexOf('|')+1)];psave(k,{[f]:t.checked?today():null}).then(()=>toast(t.checked?'Gemarkeerd als gepost':'Markering weggehaald'))}
+  if(t.dataset.pplan!=null&&t.dataset.pplan){psave(t.dataset.pplan,{plan:t.value||null}).then(()=>{toast(t.value?'Gepland op '+fmt(t.value):'Planning weggehaald');post()})}
+  if(t.dataset.pptime){psave(t.dataset.pptime,{ptime:t.value||null}).then(post)}
   if(t.dataset.ptext){const k=t.dataset.ptext,o=postList().find(x=>x.key===k);psave(k,{text:t.value.trim()===o?.text?null:t.value})}
 });
 document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!t.dataset.ptext)return;const k=t.dataset.ptext;pcount(k);const x=document.querySelector(`[data-px="${CSS.escape(k)}"]`),b=document.querySelector(`[data-pb="${CSS.escape(k)}"]`);if(x)x.href=xurl(t.value);if(b)b.href=burl(t.value)});
