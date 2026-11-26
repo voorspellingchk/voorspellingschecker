@@ -128,6 +128,15 @@ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertic
 #toast.on{opacity:1}
 [hidden]{display:none!important}
 body:not(.pub) .pubonly,body.pub .edonly{display:none!important}
+.pcard{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:24px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;margin:0 0 18px}
+.pimg canvas{width:100%;height:auto;border-radius:12px;display:block;border:1px solid var(--line);cursor:pointer}
+.pkind{margin:0 0 10px;color:var(--mute);font-size:14px}.pkind b{color:var(--yel-ink)}
+.pbody textarea{width:100%}.pbody .row{margin-top:10px;flex-wrap:wrap}
+.preply{margin-top:10px}.preply pre{white-space:pre-wrap;font:14px/1.5 "IBM Plex Sans",sans-serif;background:var(--raised);padding:10px 12px;border-radius:10px;margin:8px 0}
+.pst{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.pst label{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:15px}
+.count.over{color:var(--no)}
+.pst input[type=checkbox],#v-post .tools input[type=checkbox]{width:auto;flex:none;margin:0}.pst label,#v-post .tools label{white-space:nowrap;margin:0}
+@media (max-width:700px){.pcard{grid-template-columns:1fr}.pimg{max-width:360px}}
 .tile .who{font:700 17px "Space Grotesk",sans-serif}.tile .role{color:var(--mute);font-size:14px}
 header .cta{position:relative;z-index:1;margin-top:18px}
 .over>*{max-width:820px}.over>.verdicts{max-width:1000px}.over h2{font-size:clamp(28px,4vw,40px);margin-bottom:12px}.over h3{font-size:22px;margin:28px 0 6px}.over p{max-width:68ch}
@@ -154,6 +163,7 @@ header .cta{position:relative;z-index:1;margin-top:18px}
   <a href="#ledger" data-v="ledger">Voorspellingen</a>
   <a href="#kalender" data-v="kalender">Checkkalender</a>
   <a href="#nieuw" data-v="nieuw" class="edonly">Bron scannen</a>
+  <a href="#post" data-v="post" class="edonly">Posten</a>
   <a href="#over" data-v="over" class="pubonly">Hoe wij checken</a>
 </div></nav>
 <main>
@@ -185,6 +195,11 @@ header .cta{position:relative;z-index:1;margin-top:18px}
   <h3>Tip of correctie?</h3>
   <p>Zag je een voorspelling die we moeten volgen, of denk je dat een check niet klopt? Laat het weten via het tipformulier of via <a href="https://x.com/voorspellingchk" target="_blank" rel="noopener">@voorspellingchk</a> op X. We controleren elke tip aan de hand van de bron voordat die op de site komt.</p>
   <div class="row"><a class="btn tipbtn" target="_blank" rel="noopener">Voorspelling insturen</a></div>
+</div></section>
+<section class="band" id="v-post" hidden><div class="wrap">
+  <div class="tools"><h2 style="font-size:32px;flex:1 1 auto">Posten</h2><div class="row" id="pfilters" style="margin:0"></div><label style="display:flex;flex-direction:row;gap:6px;align-items:center;font-size:15px"><input type="checkbox" id="psound" checked> Geluidseffecten</label><label style="display:flex;flex-direction:row;gap:6px;align-items:center;font-size:15px" title="Vertraagt het typen tot spreektempo, zodat een voice-over die de tekst voorleest in de video past"><input type="checkbox" id="pvopace"> Tempo voor voice-over</label></div>
+  <p class="note">Kant-en-klare posts met een geanimeerde video (de voorspelling wordt uitgetypt, de grafiek tekent zichzelf en dan valt het stempel met het oordeel) of een stilstaande afbeelding. Druk op ▶ Afspelen of klik op de afbeelding voor een voorbeeld. Controleer de tekst, download de video of afbeelding, open X of Bluesky met de tekst al ingevuld, voeg de afbeelding toe en druk op Posten. Voor Instagram: download de afbeelding en kopieer het bijschrift. Zet de bronlink in je eerste reply, niet in de post zelf. Vink daarna aan waar je hem gepost hebt.</p>
+  <div id="posts"></div>
 </div></section>
 <section class="band" id="v-nieuw" hidden><div class="wrap">
   <h2 style="font-size:32px">Bron scannen</h2>
@@ -585,11 +600,227 @@ function person(){
 }
 
 /* ---------- routing & events ---------- */
-const VIEWS=PUB?['overzicht','ledger','kalender','over']:['overzicht','ledger','kalender','nieuw'];
+const VIEWS=PUB?['overzicht','ledger','kalender','over']:['overzicht','ledger','kalender','nieuw','post'];
+/* ---------- post studio (editor only) ---------- */
+let POSTS={},pfilt='todo',plimit=12;
+const pid=k=>k.replace(/[^\w-]/g,'_');
+const VLABEL={correct:['CORRECT','#3ed68c'],incorrect:['ONJUIST','#ff6b6b'],partial:['DEELS CORRECT','#ff9f43'],tooearly:['TE VROEG','#8fb3ff']};
+const num=v=>{v=+v;return Math.abs(v)>=1000?Math.round(v).toLocaleString('nl-NL'):String(+v.toFixed(2)).replace('.',',')};
+const jubN=p=>p.by==='jubileum'&&p.saidOn?Math.round((Date.now()-new Date(p.saidOn+'T12:00:00'))/(365.25*864e5)):0;
+const dlong=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'});
+const dmy=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{month:'long',year:'numeric'});
+const vtNoUrl=(p,c)=>verdictTweet(p,{...c,url:''});
+function postList(){
+  const out=[];
+  items.forEach(p=>{
+    const own=p.tweet&&/^(🔮|📆)/u.test(p.tweet)?p.tweet:null,v=p.verdict||'open',jub=p.by==='jubileum';
+    const cs=(p.checks||[]).filter(c=>c.verdict&&c.verdict!=='open').sort((x,y)=>y.date.localeCompare(x.date));
+    if(p.by==='x-archief'){if(cs[0]&&cs[0].date>='2026-11-01')out.push({key:p.id+'~c'+cs[0].date,p,kind:'check',c:cs[0],text:vtNoUrl(p,cs[0]),date:cs[0].date});return}
+    if(jub){const c=cs[0]||null;out.push({key:p.id+'~a',p,kind:'anniversary',c,text:own||(c?`📆 ${jubN(p)} jaar geleden\n\n`+vtNoUrl(p,c):tweetFor(p)),date:(p.createdAt||'').slice(0,10)||p.saidOn||''});return}
+    const a=v==='open'||v==='tooearly'?own||tweetFor(p):null;
+    if(a)out.push({key:p.id+'~a',p,kind:/^📆/u.test(a)?'anniversary':'prediction',text:a,date:(p.createdAt||'').slice(0,10)||p.saidOn||'',c:null});
+    if(cs[0]&&(cs[0].verdict!=='tooearly'||p.metric?.label)){const c=cs[0];out.push({key:p.id+'~c'+c.date,p,kind:'check',c,text:vtNoUrl(p,c),date:c.date})}
+  });
+  return out.sort((x,y)=>y.date.localeCompare(x.date)||x.key.localeCompare(y.key));
+}
+const pst=k=>POSTS[pid(k)]||{};
+const pdone=s=>!!(s.x&&s.bsky&&s.ig);
+const ptext=o=>pst(o.key).text||o.text;
+function preply(o){const u=(o.c&&srcUrl(o.c))||(o.p.checks||[]).map(srcUrl).filter(Boolean).pop()||o.p.sourceUrl||'';return `${u?'Bron: '+u+'\n\n':''}Alle checks: https://voorspellingschecker.nl`}
+
+function voiceText(o){const p=o.p,cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
+  const said=p.saidOn?' in '+dmy(p.saidOn):'';
+  const parts=[];
+  if(o.kind==='anniversary'&&jubN(p))parts.push(jubN(p)+' jaar geleden.');
+  else if(o.kind==='prediction')parts.push('Nieuwe voorspelling.');
+  parts.push(`${p.who}${p.role?', '+p.role+',':''} zei${said}: “${p.claim.replace(/[.\s]+$/,'')}.”`);
+  if(cc&&cc.note)parts.push('En wat gebeurde er? '+cc.note.replace(/\s*Bron:\s*(.+)$/,' Bron: $1.').replace(/\.\.$/,'.'));
+  else if(p.nextCheck)parts.push(`Wij checken dit op ${dlong(p.nextCheck)}.`);
+  if(cc&&VLABEL[cc.verdict])parts.push('Oordeel… '+VLABEL[cc.verdict][0].toLowerCase()+'.');
+  return parts.join('\n\n')}
+const pcap=o=>ptext(o)+'\n\nBron en volledige check: link in bio (voorspellingschecker.nl)';
+const xurl=t=>'https://x.com/intent/post?text='+encodeURIComponent(t);
+const burl=t=>'https://bsky.app/intent/compose?text='+encodeURIComponent(t);
+const graphemes=t=>{try{return [...new Intl.Segmenter().segment(t)].length}catch{return [...t].length}};
+function post(){
+  const box=$('#posts');if(!box)return;const sw=$('#psound');if(sw)sw.checked=SOUND;const vp=$('#pvopace');if(vp)vp.checked=VOPACE;
+  if(!items.length){box.innerHTML='<div class="empty">Laden…</div>';return}
+  const all=postList(),L=all.filter(o=>{const s=pst(o.key);return pfilt==='all'?true:pfilt==='done'?pdone(s):!pdone(s)&&!s.skip});
+  const n=all.filter(o=>{const s=pst(o.key);return !pdone(s)&&!s.skip}).length;
+  $('#pfilters').innerHTML=[['todo',`Te posten (${n})`],['done','Gepost'],['all','Alles']].map(([k,t])=>`<button class="chip" aria-pressed="${pfilt===k}" data-pf="${k}">${t}</button>`).join('');
+  box.innerHTML=L.length?L.slice(0,plimit).map(o=>{const s=pst(o.key),t=ptext(o),k=esc(o.key),kd={prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[o.kind];
+    return `<article class="pcard" data-pk="${k}"><div class="pimg"><canvas width="1080" height="1350" data-pc="${k}"></canvas></div><div class="pbody">
+     <p class="pkind"><b>${kd}</b> · ${fmt(o.date)} · ${esc(o.p.who)}${s.skip?' · <i>overgeslagen</i>':''}</p>
+     <label>Posttekst <span class="count" data-pn="${k}"></span><textarea data-ptext="${k}" style="min-height:150px">${esc(t)}</textarea></label>
+     <details class="preply"><summary>Eerste reply, met de bronlink</summary><pre>${esc(preply(o))}</pre><button class="ghost" data-pcopy="r:${k}">Reply kopiëren</button></details>
+     <div class="row">
+      <button data-pvid="${k}">Video downloaden</button><button class="ghost" data-pplay="${k}">▶ Afspelen</button><button class="ghost" data-pdl="${k}">Afbeelding downloaden</button><button class="ghost" data-pci="${k}">Afbeelding kopiëren</button>
+     </div>
+     <div class="row">
+      <a class="btn ghost" data-px="${k}" href="${esc(xurl(t))}" target="_blank" rel="noopener">Openen in X ↗</a>
+      <a class="btn ghost" data-pb="${k}" href="${esc(burl(t))}" target="_blank" rel="noopener">Openen in Bluesky ↗</a>
+      <button class="ghost" data-pcopy="i:${k}">Instagram: bijschrift kopiëren</button><button class="ghost" data-pcopy="v:${k}" title="Tekst voor een voice-over in CapCut, TikTok of Instagram">Voice-overtekst kopiëren</button>
+     </div>
+     <div class="pst">${[['x','X'],['bsky','Bluesky'],['ig','Instagram']].map(([f,lb])=>`<label><input type="checkbox" data-pmark="${f}|${k}" ${s[f]?'checked':''}> Gepost op ${lb}${s[f]?` <span class="count">${fmt(s[f])}</span>`:''}</label>`).join('')}
+      <button class="ghost" data-pskip="${k}">${s.skip?'Toch tonen':'Overslaan'}</button></div>
+    </div></article>`}).join('')+(L.length>plimit?`<div class="row" style="justify-content:center"><button class="ghost" data-pmore="1">Meer tonen (nog ${L.length-plimit})</button></div>`:''):`<div class="empty">${pfilt==='done'?'Nog niets gepost.':'Niets te posten. De wekelijkse run op maandagochtend voegt nieuwe posts toe.'}</div>`;
+  L.slice(0,plimit).forEach(o=>pcount(o.key));
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);const o=all.find(x=>x.key===e.target.dataset.pc);if(o)drawCard(o,e.target)}}),{rootMargin:'300px'});
+  box.querySelectorAll('canvas[data-pc]').forEach(c=>io.observe(c));
+}
+function pcount(k){const t=document.querySelector(`[data-ptext="${CSS.escape(k)}"]`),c=document.querySelector(`[data-pn="${CSS.escape(k)}"]`);if(!t||!c)return;const n=graphemes(t.value);c.textContent=`${n} tekens · X max 280 · Bluesky max 300`;c.classList.toggle('over',n>280)}
+async function psave(k,patch){const id=pid(k),cur=POSTS[id]||{};const nx={...cur,...patch,key:k,updatedAt:new Date().toISOString()};POSTS[id]=nx;try{await db.doc('posts/'+id).set(nx)}catch{toast('Opslaan mislukt')}}
+/* --- image card --- */
+const fontsReady=(async()=>{try{await Promise.all(['700 64px "Space Grotesk"','500 30px "Space Grotesk"','400 30px "IBM Plex Sans"','600 30px "IBM Plex Sans"'].map(f=>document.fonts.load(f)))}catch{}})();
+function wrap(ctx,t,maxW,maxL){const words=String(t).split(/\s+/),lines=[];let cur='';for(const w of words){const n=cur?cur+' '+w:w;if(ctx.measureText(n).width>maxW&&cur){lines.push(cur);cur=w}else cur=n}if(cur)lines.push(cur);if(lines.length>maxL){lines.length=maxL;let l=lines[maxL-1];while(ctx.measureText(l+'…').width>maxW&&l.includes(' '))l=l.replace(/\s+\S*$/,'');lines[maxL-1]=l+'…'}return lines}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+const ease=t=>t<=0?0:t>=1?1:1-Math.pow(1-t,3);
+const clamp=t=>Math.max(0,Math.min(1,t));
+function scene(o,ctx){
+  const p=o.p,W=1080,H=1350,M=72,HD='"Space Grotesk",sans-serif',TX='"IBM Plex Sans",sans-serif';
+  const C={bg:'#0e1a3d',deep:'#0b1430',paper:'#15244f',ink:'#eef1fa',mute:'#a7b1d0',line:'#28396f',yel:'#ffd23f'};
+  const cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
+  const vd=cc&&VLABEL[cc.verdict]?cc.verdict:null;
+  const badge=o.kind==='anniversary'?(jubN(p)?jubN(p)+' JAAR GELEDEN':'JUBILEUM'):o.kind==='check'?'VOORSPELLING GECHECKT':'NIEUWE VOORSPELLING';
+  // ---- layout (fixed, independent of time) ----
+  let y=M+132;const L={};
+  ctx.font=`700 64px ${HD}`;L.who=wrap(ctx,p.who,W-2*M,2).map(l=>{y+=0;const r={t:l,y:y+96};y+=70;return r});y+=96;
+  ctx.font=`400 28px ${TX}`;const sub=[p.role,p.saidOn?'gezegd in '+dmy(p.saidOn):''].filter(Boolean).join(' · ');
+  L.sub=wrap(ctx,sub,W-2*M,2).map(l=>{const r={t:l,y:y-14};y+=38;return r});
+  y+=26;ctx.font=`600 44px ${TX}`;const cy0=y;L.claim=wrap(ctx,'“'+p.claim+'”',W-2*M-28,6).map(l=>{y+=54;return{t:l,y}});L.bar=[cy0+10,y-cy0+4];
+  y+=40;const pts=chartPts(p),m=p.metric||{},note=cc?cc.note||'':'',footH=150,avail=H-footH-y;
+  if(cc&&o.kind==='anniversary'){y+=34;L.wh={y,t:'WAT ER GEBEURDE'};y+=34}
+  if(pts.length>=2&&avail>300){ctx.font=`400 32px ${TX}`;const nl=note?wrap(ctx,note,W-2*M,3):[];const ch=Math.min(440,H-footH-y-(nl.length?nl.length*42+40:0)-20);
+    L.chart={x:M,y,w:W-2*M,h:ch};y+=ch+40;L.note={lines:nl.map(t=>{const r={t,y};y+=42;return r}),font:`400 32px ${TX}`,box:null}}
+  else if(note){ctx.font=`400 36px ${TX}`;const nl=wrap(ctx,note,W-2*M-60,6);const bh=Math.min(H-footH-y-20,60+nl.length*48);L.note={lines:nl.map((t,i)=>({t,y:y+62+i*48})),font:`400 36px ${TX}`,box:[M,y,W-2*M,bh],x:M+30};y+=bh}
+  else if(p.nextCheck){L.due={y}}
+  // stamp position: over the claim, right side
+  const free=H-footH-y;const SP=free>=220?{x:W/2,y:y+free/2,r:-0.12,s:1.25}:{x:W-M-200,y:L.who[0].y-24,r:-0.14,s:.85};
+  // ---- timeline (seconds) ----
+  const wc=t=>String(t||'').split(/\s+/).filter(Boolean).length,VO=typeof VOPACE!=='undefined'&&VOPACE;
+  const nClaim=L.claim.reduce((a,l)=>a+l.t.length,0),tC0=VO?0.8+(o.kind!=='check'?1.2:0)+wc(p.who+' '+(p.role||''))/2.6+1:0.6,tC1=tC0+(VO?wc(p.claim)/2.5:Math.min(3.2,nClaim*0.035));
+  const tG0=tC1+0.3,tG1=L.chart?tG0+2.4:tG0;
+  const nNote=L.note?L.note.lines.reduce((a,l)=>a+l.t.length,0):0,tN0=VO?Math.max(tG1+0.2,tC1+1.4):tG1+0.2,tN1=tN0+(VO&&L.note?L.note.lines.reduce((a,l)=>a+wc(l.t),0)/2.5:Math.min(2.6,nNote*0.022));
+  const tS=tN1+(VO?1.1:0.35),dur=tS+(VO?2.4:3.2);
+  function typed(lines,t0,t1,t,draw){const total=lines.reduce((a,l)=>a+l.t.length,0),n=Math.floor(clamp((t-t0)/(t1-t0||1))*total);let left=n,cur=null;
+    for(const l of lines){if(left<=0)break;const s=l.t.slice(0,left);left-=l.t.length;draw(l,s);cur={l,s}}
+    return n<total&&t>=t0?cur:null}
+  function draw(t){
+    const _cn=t>=tC0?Math.floor(clamp((t-tC0)/(tC1-tC0||1))*nClaim):0,_nn=L.note&&t>=tN0?Math.floor(clamp((t-tN0)/(tN1-tN0||1))*nNote):0;
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.globalAlpha=1;ctx.setLineDash([]);
+    ctx.fillStyle=C.deep;ctx.fillRect(0,0,W,H);
+    const g=ctx.createRadialGradient(W*.85,-80,40,W*.85,-80,900);g.addColorStop(0,'#2a4bd155');g.addColorStop(1,'#0b143000');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    const a0=ease(t/0.5);ctx.globalAlpha=a0;
+    ctx.font=`700 34px ${HD}`;ctx.fillStyle=C.ink;ctx.fillText('Voorspellingschecker',M,M+30);
+    ctx.font=`500 28px ${HD}`;ctx.fillStyle=C.mute;ctx.textAlign='right';ctx.fillText('@voorspellingchk',W-M,M+30);ctx.textAlign='left';
+    ctx.font=`700 34px ${HD}`;const bw=ctx.measureText(badge).width+40;ctx.save();ctx.translate(M,M+132);ctx.rotate(-.03);rr(ctx,0,-42,bw,58,10);ctx.fillStyle=C.yel;ctx.fill();ctx.fillStyle='#0b1430';ctx.fillText(badge,20,0);ctx.restore();
+    ctx.font=`700 64px ${HD}`;ctx.fillStyle=C.ink;L.who.forEach(l=>ctx.fillText(l.t,M,l.y));
+    ctx.font=`400 28px ${TX}`;ctx.fillStyle=C.mute;L.sub.forEach(l=>ctx.fillText(l.t,M,l.y));
+    ctx.globalAlpha=1;
+    // claim typing
+    if(t>=tC0){ctx.fillStyle=C.yel;ctx.fillRect(M,L.bar[0],6,L.bar[1]*ease((t-tC0)/0.4));
+      ctx.font=`600 44px ${TX}`;ctx.fillStyle=C.ink;const cur=typed(L.claim,tC0,tC1,t,(l,s)=>ctx.fillText(s,M+28,l.y));
+      if(cur&&Math.floor(t*3)%2===0){ctx.fillStyle=C.yel;ctx.fillRect(M+28+ctx.measureText(cur.s).width+4,cur.l.y-38,4,46)}}
+    if(L.wh&&t>=tG0){const[vl,vc]=VLABEL[cc.verdict]||['',C.yel];ctx.globalAlpha=ease((t-tG0)/0.4);ctx.font=`700 30px ${HD}`;ctx.fillStyle=C.mute;ctx.fillText(L.wh.t,M,L.wh.y);ctx.globalAlpha=1}
+    if(L.chart&&t>=tG0-0.2)drawMini(ctx,p,pts,L.chart.x,L.chart.y,L.chart.w,L.chart.h,C,HD,TX,clamp((t-tG0)/(tG1-tG0)),ease((t-tG0+0.2)/0.4));
+    if(L.note&&t>=tN0){if(L.note.box){const b=L.note.box;ctx.globalAlpha=ease((t-tN0+0.2)/0.3);rr(ctx,b[0],b[1],b[2],b[3],18);ctx.fillStyle=C.paper;ctx.fill();ctx.globalAlpha=1}
+      ctx.font=L.note.font;ctx.fillStyle=C.ink;typed(L.note.lines,tN0,tN1,t,(l,s)=>ctx.fillText(s,L.note.x||M,l.y))}
+    if(L.due&&t>=tG0){const yy=L.due.y,a=ease((t-tG0)/0.5);ctx.globalAlpha=a;rr(ctx,M,yy+(1-a)*30,W-2*M,190,18);ctx.fillStyle=C.paper;ctx.fill();ctx.font=`500 28px ${HD}`;ctx.fillStyle=C.mute;ctx.fillText('WIJ CHECKEN DIT OP',M+36,yy+66+(1-a)*30);ctx.font=`700 64px ${HD}`;ctx.fillStyle=C.yel;ctx.fillText(dlong(p.nextCheck),M+36,yy+146+(1-a)*30);ctx.globalAlpha=1}
+    // footer
+    ctx.globalAlpha=a0;ctx.fillStyle=C.line;ctx.fillRect(M,H-footH+20,W-2*M,2);ctx.font=`700 34px ${HD}`;ctx.fillStyle=C.yel;ctx.fillText('voorspellingschecker.nl',M,H-M+4);
+    const ds=dataSrc(p);if(ds&&pts.length>=2){ctx.font=`400 24px ${TX}`;ctx.fillStyle=C.mute;ctx.textAlign='right';ctx.fillText(wrap(ctx,'Data: '+ds,480,1)[0],W-M,H-M+2);ctx.textAlign='left'}
+    ctx.globalAlpha=1;
+    // stamp slam
+    if(vd&&t>=tS){const[lab,col]=VLABEL[vd],k=clamp((t-tS)/0.22),sc=k<1?2.6-1.6*ease(k):1+0.06*Math.max(0,1-(t-tS-0.22)/0.25)*Math.sin((t-tS)*60);
+      const shake=k>=1&&t-tS<0.45?(Math.random()-.5)*10:0;
+      ctx.save();ctx.translate(SP.x+shake,SP.y+shake);ctx.rotate(SP.r);ctx.scale(sc*SP.s,sc*SP.s);ctx.globalAlpha=Math.min(1,k*1.4);
+      ctx.font=`700 ${lab.length>12?50:78}px ${HD}`;const tw=ctx.measureText(lab).width,bw=tw+70,bh=lab.length>12?100:128;
+      rr(ctx,-bw/2,-bh/2,bw,bh,16);ctx.fillStyle='#0b1430e6';ctx.fill();ctx.lineWidth=10;ctx.strokeStyle=col;ctx.stroke();
+      rr(ctx,-bw/2+12,-bh/2+12,bw-24,bh-24,10);ctx.lineWidth=3;ctx.stroke();
+      ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(lab,0,4);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.globalAlpha=1}
+    return{chars:_cn+_nn,claimDone:t>=tC1,stamp:!!vd&&t>=tS}
+  }
+  return{dur,draw};
+}
+async function drawCard(o,cv){await fontsReady;const ctx=cv.getContext('2d'),s=scene(o,ctx);s.draw(s.dur)}
+function drawMini(ctx,p,pts,x,y,w,h,C,HD,TX,prog=1,alpha=1){
+  const m=p.metric||{},tgt=m.target!=null&&m.target!==''&&p.targetDate?{x:yr(p.targetDate),v:+m.target}:null;
+  ctx.globalAlpha=alpha;ctx.fillStyle=C.paper;rr(ctx,x,y,w,h,18);ctx.fill();
+  const xs=pts.map(q=>yr(q.d)).concat(tgt?[tgt.x]:[]),vs=pts.map(q=>q.v).concat(tgt?[tgt.v]:[]);
+  let x0=Math.min(...xs),x1=Math.max(...xs);if(x1-x0<1)x1=x0+1;let lo=Math.min(...vs),hi=Math.max(...vs);if(lo===hi){lo--;hi++}const pad=(hi-lo)*.08;lo=lo>=0&&lo-pad<0?0:lo-pad;hi+=pad;const tk=niceTicks(lo,hi,4);lo=tk.lo;hi=tk.hi;
+  ctx.font=`400 20px ${TX}`;const Lx=x+24+Math.max(...tk.vals.map(v=>ctx.measureText(tk.fmt(v)).width))+12,R=x+w-30,T=y+70,B=y+h-46;
+  const X=v=>Lx+(v-x0)/(x1-x0)*(R-Lx),Y=v=>T+(hi-v)/(hi-lo)*(B-T);
+  ctx.strokeStyle=C.line;ctx.lineWidth=2;ctx.fillStyle=C.mute;ctx.textAlign='right';
+  for(const v of tk.vals){ctx.beginPath();ctx.moveTo(Lx,Y(v));ctx.lineTo(R,Y(v));ctx.stroke();ctx.fillText(tk.fmt(v),Lx-10,Y(v)+7)}
+  ctx.textAlign='center';const ys=Math.ceil(x0),ye=Math.floor(x1),st=Math.max(1,Math.ceil((ye-ys+1)/7));for(let yy=ys;yy<=ye;yy+=st)ctx.fillText(String(yy),X(yy),B+32);ctx.textAlign='left';
+  const said=p.saidOn?yr(p.saidOn):null;
+  if(said!=null&&said>=x0&&said<=x1){ctx.strokeStyle=C.ink;ctx.globalAlpha=.5*alpha;ctx.beginPath();ctx.moveTo(X(said),T-6);ctx.lineTo(X(said),B);ctx.stroke();ctx.globalAlpha=alpha}
+  if(tgt){let ref=null;if(said!=null){const b=pts.filter(q=>yr(q.d)<=said).pop();ref=b?b.v:(m.baseline!=null&&m.baseline!==''?+m.baseline:null)}
+    ctx.strokeStyle=C.yel;ctx.lineWidth=4;if(ref!=null&&said!=null){ctx.setLineDash([14,10]);ctx.beginPath();ctx.moveTo(X(said),Y(ref));ctx.lineTo(X(tgt.x),Y(tgt.v));ctx.stroke();ctx.setLineDash([])}
+    ctx.beginPath();ctx.arc(X(tgt.x),Y(tgt.v),10,0,7);ctx.stroke();ctx.font=`700 24px ${HD}`;ctx.fillStyle=C.yel;const tl='voorspeld: '+num(tgt.v);ctx.textAlign=X(tgt.x)>x+w/2?'right':'left';ctx.fillText(tl,X(tgt.x)+(ctx.textAlign==='right'?-18:18),Y(tgt.v)+(Y(tgt.v)<T+40?34:-16));ctx.textAlign='left'}
+  // measured line, revealed by prog
+  const P=pts.map(q=>({x:X(yr(q.d)),y:Y(q.v),v:q.v,d:q.d})),xh=P[0].x+(P[P.length-1].x-P[0].x)*ease(prog);
+  let i=0;while(i<P.length-1&&P[i+1].x<=xh)i++;const a=P[i],b=P[Math.min(i+1,P.length-1)],fr=b.x>a.x?(xh-a.x)/(b.x-a.x):0,yh=a.y+(b.y-a.y)*fr;
+  ctx.strokeStyle=C.ink;ctx.lineWidth=4;ctx.beginPath();P.slice(0,i+1).forEach((q,k)=>k?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.lineTo(xh,yh);ctx.stroke();
+  ctx.fillStyle=C.ink;P.slice(0,i+1).forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,6,0,7);ctx.fill()});
+  if(prog<1){ctx.beginPath();ctx.arc(xh,yh,10,0,7);ctx.fill()}
+  const cp=prog>=1?P[P.length-1]:P[i],unit=m.unit&&m.unit.length<12?' '+m.unit:'',lt=(prog>=1?'laatste ':'')+cp.d.slice(0,4)+': '+num(cp.v)+unit;
+  ctx.font=`700 26px ${HD}`;const lw=ctx.measureText('laatste '+P[P.length-1].d.slice(0,4)+': '+num(Math.max(...P.map(q=>Math.abs(q.v))))+unit).width;ctx.fillStyle=C.ink;ctx.textAlign='right';ctx.fillText(lt,x+w-24,y+40);ctx.textAlign='left';
+  ctx.font=`500 24px ${HD}`;ctx.fillStyle=C.mute;ctx.fillText(wrap(ctx,(m.label||'').replace(/\s*\(.*$/,'')+(m.unit?' ('+m.unit+')':''),w-72-lw,1)[0]||'',x+24,y+40);
+  ctx.globalAlpha=1;
+}
+const cvOf=k=>document.querySelector(`canvas[data-pc="${CSS.escape(k)}"]`);
+async function pblob(k){const cv=cvOf(k),o=postList().find(x=>x.key===k);if(o)await drawCard(o,cv);return new Promise(r=>cv.toBlob(r,'image/png'))}
+/* --- sound effects (Web Audio) --- */
+function sfxKit(ac,dest){const out=ac.createGain();out.gain.value=.55;const comp=ac.createDynamicsCompressor();comp.threshold.value=-10;comp.ratio.value=8;out.connect(comp).connect(dest);
+  const noise=(dur)=>{const b=ac.createBuffer(1,Math.ceil(ac.sampleRate*dur),ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b};
+  const nb=noise(0.6);
+  function burst(t,{dur=.02,f=3000,q=1.2,gain=.5,type='bandpass'}){const s=ac.createBufferSource();s.buffer=nb;s.playbackRate.value=.9+Math.random()*.2;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=ac.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);s.connect(fl).connect(g).connect(out);s.start(t);s.stop(t+dur+.02)}
+  function tone(t,{f0=90,f1=45,dur=.25,gain=.9,type='sine'}){const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=ac.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g).connect(out);o.start(t);o.stop(t+dur+.02)}
+  return{now:()=>ac.currentTime,
+    key(t=ac.currentTime){burst(t,{dur:.018,f:2600+Math.random()*1400,q:1.5,gain:.35+Math.random()*.15});burst(t+.004,{dur:.03,f:220,q:.8,gain:.25,type:'lowpass'})},
+    bell(t=ac.currentTime){tone(t,{f0:2093,f1:2080,dur:.9,gain:.18});tone(t,{f0:4186,f1:4170,dur:.5,gain:.05})},
+    stamp(t=ac.currentTime){burst(t,{dur:.05,f:1800,q:.6,gain:.7});tone(t,{f0:120,f1:42,dur:.35,gain:1});burst(t,{dur:.22,f:380,q:.7,gain:.9,type:'lowpass'})},
+    whoosh(t=ac.currentTime){const s=ac.createBufferSource();s.buffer=nb;const fl=ac.createBiquadFilter();fl.type='bandpass';fl.Q.value=.8;fl.frequency.setValueAtTime(400,t);fl.frequency.exponentialRampToValueAtTime(2400,t+.35);const g=ac.createGain();g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(.25,t+.2);g.gain.exponentialRampToValueAtTime(.001,t+.45);s.connect(fl).connect(g).connect(out);s.start(t);s.stop(t+.5)}
+  };
+}
+function sfxDriver(kit){let lastN=0,lastKey=0,stamped=false,belled=false,whooshed=false;
+  return(st,now)=>{if(!st)return;if(st.chars>lastN){if(now-lastKey>.045){kit.key();lastKey=now}lastN=st.chars}
+    if(st.claimDone&&!belled){belled=true;kit.bell()}
+    if(st.stamp&&!stamped){stamped=true;kit.whoosh();kit.stamp(kit.now()+.2)}}}
+
+let AC=null;
+async function pplay(k){const cv=cvOf(k),o=postList().find(x=>x.key===k);if(!o)return;await fontsReady;const my=cv._play=(cv._play||0)+1,ctx=cv.getContext('2d'),s=scene(o,ctx),t0=performance.now();
+  let drv=null;if(SOUND){try{AC=AC||new AudioContext();AC.resume();drv=sfxDriver(sfxKit(AC,AC.destination))}catch{}}
+  const step=now=>{if(my!==cv._play)return;const t=(now-t0)/1000,st=s.draw(Math.min(t,s.dur));if(drv)drv(st,t);if(t<s.dur)requestAnimationFrame(step)};requestAnimationFrame(step)}
+let SOUND=true,VOPACE=false;try{SOUND=localStorage.getItem('vc-sound')!=='off';VOPACE=localStorage.getItem('vc-vopace')==='on'}catch{}
+const vsup=t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t);
+const VTYPE_AV=window.__forceAV||['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4;codecs=avc1.640028,mp4a.40.2'].find(vsup)||'';
+const VTYPE=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(vsup)||'';
+async function pvideo(k,btn){
+  if(!VTYPE){toast('Deze browser kan geen video opnemen');return}
+  const o=postList().find(x=>x.key===k);if(!o)return;await fontsReady;
+  const cv=document.createElement('canvas');cv.width=1080;cv.height=1350;const ctx=cv.getContext('2d'),s=scene(o,ctx);s.draw(0);
+  const vs=cv.captureStream(30);let ac=null,drv=null,st=vs,TYPE=VTYPE;if(SOUND&&!VTYPE_AV)toast('Deze browser kan geen geluid aan MP4 toevoegen; de video wordt zonder geluid opgeslagen. Probeer Chrome of Safari op een computer.');
+  if(SOUND&&VTYPE_AV){TYPE=VTYPE_AV;try{ac=new AudioContext();await ac.resume();const dst=ac.createMediaStreamDestination();drv=sfxDriver(sfxKit(ac,dst));st=new MediaStream([...vs.getVideoTracks(),...dst.stream.getAudioTracks()])}catch{ac=null}}
+  const rec=new MediaRecorder(st,{mimeType:TYPE,videoBitsPerSecond:8e6}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  const done=new Promise(r=>rec.onstop=r);const lbl=btn?btn.textContent:'';if(btn)btn.disabled=true;
+  rec.start(250);const t0=performance.now();
+  await new Promise(res=>{const step=now=>{const t=(now-t0)/1000,ss=s.draw(Math.min(t,s.dur));if(drv)drv(ss,t);if(btn)btn.textContent=`Opnemen… ${Math.ceil(s.dur-t)}s`;if(t<s.dur+0.3)requestAnimationFrame(step);else res()};requestAnimationFrame(step)});
+  rec.stop();await done;st.getTracks().forEach(t=>t.stop());if(ac)ac.close();if(btn){btn.disabled=false;btn.textContent=lbl}
+  const ext=TYPE.includes('mp4')?'mp4':'webm',blob=new Blob(ch,{type:TYPE.split(';')[0]});
+  let dl=null;try{dl=await claude.use('downloads')}catch{}
+  if(dl){try{await dl.save({filename:pid(k)+'.'+ext,data:blob});toast(ext==='mp4'?'Video opgeslagen':'Video opgeslagen als WebM (X wil MP4)')}catch(e){if(e&&e.code!=='declined')toast('Video opslaan mislukt')}return}
+  const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=pid(k)+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+async function pdownload(k){const b=await pblob(k);let dl=null;try{dl=await claude.use('downloads')}catch{}if(dl){try{await dl.save({filename:pid(k)+'.png',data:b});toast('Afbeelding opgeslagen')}catch(e){if(e&&e.code!=='declined')toast('Afbeelding opslaan mislukt')}return}const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=pid(k)+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('Afbeelding gedownload')}
+async function pcopyimg(k){try{const b=await pblob(k);await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);toast('Afbeelding gekopieerd; plak hem in de post')}catch{toast('Afbeeldingen kopiëren mag hier niet; gebruik Downloaden')}}
+
+
 function route(){const h=location.hash.slice(1),pv=h.startsWith('persoon/');const v=pv?'persoon':VIEWS.includes(h)?h:'overzicht';
   VIEWS.concat('persoon').forEach(k=>$('#v-'+k).hidden=k!==v);
   if(pv){let w=h.slice(8);try{w=decodeURIComponent(w)}catch(e){}const nw=w!==personWho||$('#person').dataset.shown!=='1';personWho=w;person();$('#person').dataset.shown='1';if(nw)requestAnimationFrame(()=>{const y=$('#v-persoon').getBoundingClientRect().top+scrollY-document.querySelector('nav').offsetHeight;scrollTo({top:Math.max(0,y),behavior:'instant'})})}else $('#person').dataset.shown='';
-  document.querySelectorAll('nav a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v));if(v==='kalender')cal()}
+  document.querySelectorAll('nav a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v));if(v==='kalender')cal();if(v==='post')post()}
 addEventListener('hashchange',route);route();
 {const segs=()=>document.querySelectorAll('[data-theme-set]');const curT=()=>{try{return localStorage.getItem('vc-theme')||'auto'}catch(e){return 'auto'}};
  const paintSeg=()=>{const c=curT();segs().forEach(b=>b.setAttribute('aria-pressed',b.dataset.themeSet===c))};
@@ -602,7 +833,7 @@ function openPred(id){
   c.querySelector('details').open=true;
   requestAnimationFrame(()=>{const y=c.getBoundingClientRect().top+scrollY-(document.querySelector('nav').offsetHeight+12);scrollTo({top:y,behavior:'instant'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1600)});
 }
-function renderAll(){board();filters();list();if(!$('#v-kalender').hidden)cal();if(!$('#v-persoon').hidden)person();dash()}
+function renderAll(){board();filters();list();if(!$('#v-kalender').hidden)cal();if(!$('#v-post').hidden)post();if(!$('#v-persoon').hidden)person();dash()}
 document.addEventListener('click',e=>{const t=e.target.closest('button,[data-person],[data-open],[data-cat]');if(!t||t.dataset.person!=null)return;const d=t.dataset;
   if(d.up){upIdx+=+d.up;dash();return}
   if(d.cat){e.preventDefault();cat=d.cat;filt='all';q='';location.hash='ledger';renderAll();return}
@@ -620,6 +851,24 @@ document.addEventListener('click',e=>{const t=e.target.closest('button,[data-per
   else if(t.id==='clearc'){cands=[];candsRender()}
   else if(t.id==='ics')copy(ics());
 });
+document.addEventListener('click',e=>{const t=e.target.closest('[data-pf],[data-pmore],[data-pcopy],[data-pdl],[data-pci],[data-pskip],[data-pvid],[data-pplay],canvas[data-pc]');if(!t)return;const d=t.dataset;
+  if(d.pf){pfilt=d.pf;plimit=12;post()}
+  else if(d.pmore){plimit+=12;post()}
+  else if(d.pcopy){const[kind,k]=[d.pcopy.slice(0,1),d.pcopy.slice(2)],o=postList().find(x=>x.key===k);if(o)copy(kind==='r'?preply(o):kind==='v'?voiceText(o):pcap(o),kind==='r'?'Reply gekopieerd':kind==='v'?'Voice-overtekst gekopieerd':'Bijschrift gekopieerd')}
+  else if(d.pdl)pdownload(d.pdl);
+  else if(d.pci)pcopyimg(d.pci);
+  else if(d.pvid)pvideo(d.pvid,t);
+  else if(d.pplay)pplay(d.pplay);
+  else if(d.pc)pplay(d.pc);
+  else if(d.pskip){const s=pst(d.pskip);psave(d.pskip,{skip:!s.skip}).then(post)}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='pvopace'){VOPACE=t.checked;try{localStorage.setItem('vc-vopace',VOPACE?'on':'off')}catch{}}
+  if(t.id==='psound'){SOUND=t.checked;try{localStorage.setItem('vc-sound',SOUND?'on':'off')}catch{}}
+  if(t.dataset.pmark){const[f,k]=[t.dataset.pmark.split('|')[0],t.dataset.pmark.slice(t.dataset.pmark.indexOf('|')+1)];psave(k,{[f]:t.checked?today():null}).then(()=>toast(t.checked?'Gemarkeerd als gepost':'Markering weggehaald'))}
+  if(t.dataset.ptext){const k=t.dataset.ptext,o=postList().find(x=>x.key===k);psave(k,{text:t.value.trim()===o?.text?null:t.value})}
+});
+document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!t.dataset.ptext)return;const k=t.dataset.ptext;pcount(k);const x=document.querySelector(`[data-px="${CSS.escape(k)}"]`),b=document.querySelector(`[data-pb="${CSS.escape(k)}"]`);if(x)x.href=xurl(t.value);if(b)b.href=burl(t.value)});
 document.addEventListener('keydown',e=>{const t=e.target.closest&&e.target.closest('li[data-open]');if(t&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openPred(t.dataset.open)}});
 document.addEventListener('change',e=>{const t=e.target;if(t.id==='catsel'){cat=t.value;list()}if(t.id==='recapsel'){recapWho=t.value;dash()}});
 document.addEventListener('input',e=>{const t=e.target;
@@ -633,12 +882,13 @@ document.addEventListener('input',e=>{const t=e.target;
 board();filters();list();
 const timer=setTimeout(()=>{if(!items.length)$('#list').innerHTML='<div class="empty">De database is nog niet bereikbaar. Probeer het later opnieuw.</div>'},10000);
 const onData=()=>{clearTimeout(timer);buildImgs();const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
-    board();list();open.forEach(id=>{const c=document.getElementById(id);if(c)c.querySelector('details').open=true});if(!$('#v-kalender').hidden)cal();if(!$('#v-persoon').hidden)person();dash()};
+    board();list();open.forEach(id=>{const c=document.getElementById(id);if(c)c.querySelector('details').open=true});if(!$('#v-kalender').hidden)cal();if(!$('#v-persoon').hidden)person();if(!$('#v-post').hidden&&!document.activeElement?.dataset?.ptext)post();dash()};
 if(PUB){fetch(PUB.data||'data.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{items=(d.predictions||d).filter(p=>p&&p.who&&p.claim);onData()}).catch(()=>{clearTimeout(timer);$('#list').innerHTML='<div class="empty">De voorspellingen konden niet worden geladen.</div>'})}
 else{
 claude.use('db').then(d=>{db=d;if(!d){clearTimeout(timer);$('#list').innerHTML='<div class="empty">Opslag is in deze weergave niet beschikbaar. Open de pagina via claude.ai terwijl je bent ingelogd.</div>';return}
   d.collection('predictions').onSnapshot(s=>{if(!s.metadata.fromCache)clearTimeout(timer);items=s.docs.map(x=>({id:x.id,...x.data()}));onData()},
-   e=>{clearTimeout(timer);$('#list').innerHTML=`<div class="empty">Kon de voorspellingen niet laden (${esc(e.code)}).</div>`})});
+   e=>{clearTimeout(timer);$('#list').innerHTML=`<div class="empty">Kon de voorspellingen niet laden (${esc(e.code)}).</div>`});
+d.collection('posts').onSnapshot(s=>{POSTS={};s.docs.forEach(x=>POSTS[x.id]=x.data());if(!$('#v-post').hidden&&!document.activeElement?.dataset?.ptext)post()},()=>{})});
 claude.use('sample').then(s=>{sample=s;if(!s){$('#scan').disabled=true;$('#scanmsg').textContent='Claude is in deze weergave niet beschikbaar; voer voorspellingen handmatig in.'}else list()});
 }
 }
