@@ -1,0 +1,450 @@
+[
+ [
+  "<html lang=\"nl\">",
+  "<html lang=\"en\">"
+ ],
+ [
+  "'nl-NL'",
+  "'en-GB'"
+ ],
+ [
+  "voorspellingschecker.nl",
+  "predictionchk.com"
+ ],
+ [
+  "x.com/voorspellingchk",
+  "x.com/predictionchk"
+ ],
+ [
+  "@voorspellingchk",
+  "@predictionchk"
+ ],
+ [
+  "voorspelde${p.outlet?` in ${p.outlet}`:''}${p.saidOn?` op ${fmt(p.saidOn)}`:''}: ${p.claim}\\n\\n${p.nextCheck?`📅 Wij checken dit op ${fmt(p.nextCheck)}.`:''}",
+  "predicted${p.outlet?` in ${p.outlet}`:''}${p.saidOn?` on ${fmt(p.saidOn)}`:''}: ${p.claim}\\n\\n${p.nextCheck?`📅 We'll check this on ${fmt(p.nextCheck)}.`:''}"
+ ],
+ [
+  "`Stand ${fmt(c.date)}: ${c.value}",
+  "`As of ${fmt(c.date)}: ${c.value}"
+ ],
+ [
+  "${exact?'Vandaag':'Rond deze dag'}, ${yrs} jaar geleden (${fmt(dayP.saidOn)})",
+  "${exact?'On this day':'Around this day'}, ${yrs} years ago (${fmt(dayP.saidOn)})"
+ ],
+ [
+  " · voorspelde waarde ${esc(up.metric.target)}${u}",
+  " · predicted value ${esc(up.metric.target)}${u}"
+ ],
+ [
+  "${tr.on?'Op schema':'Niet op schema'}",
+  "${tr.on?'On track':'Off track'}"
+ ],
+ [
+  "<span>Stand ${fmt(tr.last.date)}: <b>",
+  "<span>Value on ${fmt(tr.last.date)}: <b>"
+ ],
+ [
+  ". Op schema zou dat ${nl(tr.exp)}${u} zijn. ${tr.prog<0?`De stand beweegt de verkeerde kant op, terwijl ${Math.round(tr.f*100)}% van de tijd verstreken is.`:`${Math.round(tr.prog*100)}% van de weg afgelegd na ${Math.round(tr.f*100)}% van de tijd.`}",
+  ". On track would be ${nl(tr.exp)}${u}. ${tr.prog<0?`The value is moving the wrong way, with ${Math.round(tr.f*100)}% of the time gone.`:`${Math.round(tr.prog*100)}% of the way there after ${Math.round(tr.f*100)}% of the time.`}"
+ ],
+ [
+  "Trekken we de trend van alle metingen door, dan komt de stand op ${fmt(up.targetDate)} uit op ongeveer <b>${nl(v)}${u}</b>; voorspeld was ${nl(up.metric.target)}${u}.",
+  "If we extend the trend of all measurements, the value on ${fmt(up.targetDate)} comes out at about <b>${nl(v)}${u}</b>; the prediction was ${nl(up.metric.target)}${u}."
+ ],
+ [
+  "`${arr.length} voorspelling(en) gevonden. Controleer en bewaar.`",
+  "`${arr.length} prediction(s) found. Check them and save.`"
+ ],
+ [
+  "'Voorstel ingevuld. Controleer en sla op.'",
+  "'Suggestion filled in. Check it and save.'"
+ ],
+ [
+  "'Geen bruikbaar antwoord.'",
+  "'No usable answer.'"
+ ],
+ [
+  "${R.length===1?'1 voorspelling':R.length+' voorspellingen'}",
+  "${R.length===1?'1 prediction':R.length+' predictions'}"
+ ],
+ [
+  "`📆 ${jubN(p)} jaar geleden\\n\\n`",
+  "`📆 ${jubN(p)} years ago\\n\\n`"
+ ],
+ [
+  "L.push('Bron voorspelling: '+s);if(c&&c!==s)L.push('Bron check: '+c);return `${L.length?L.join('\\n')+'\\n\\n':''}Alle checks: https://",
+  "L.push('Source of the prediction: '+s);if(c&&c!==s)L.push('Source of the check: '+c);return `${L.length?L.join('\\n')+'\\n\\n':''}All checks: https://"
+ ],
+ [
+  "} zei${said}: “",
+  "} said${said}: “"
+ ],
+ [
+  "'En wat gebeurde er? '+cc.note.replace(/\\s*Bron:\\s*(.+)$/,' Bron: $1.')",
+  "'What happened? '+cc.note.replace(/\\s*(?:Bron|Source):\\s*(.+)$/,' Source: $1.')"
+ ],
+ [
+  "`Wij checken dit op ${dlong(p.nextCheck)}.`",
+  "`We'll check this on ${dlong(p.nextCheck)}.`"
+ ],
+ [
+  "(sched(p,cc)?'Stand… ':'Oordeel… ')",
+  "(sched(p,cc)?'Status… ':'Verdict… ')"
+ ],
+ [
+  "'Vandaag · '+w:d===addD(t,1)?'Morgen · '+w",
+  "'Today · '+w:d===addD(t,1)?'Tomorrow · '+w"
+ ],
+ [
+  "['todo',`Te posten (${n})`],['done','Gepost'],['all','Alles']",
+  "['todo',`To post (${n})`],['done','Posted'],['all','All']"
+ ],
+ [
+  "Twee posts per dag (8.00 en 20.30), afgewisseld: eerst afgeronde checks, dan jubilea, nieuwe voorspellingen en tussenstanden. Een post verdwijnt uit de agenda zodra je \"Gepost op X\" aanvinkt. Kies zelf een datum om een post vast te zetten.",
+  "Two posts a day (8:00 and 20:30), mixed: closed checks first, then anniversaries, new predictions and progress checks. A post leaves the agenda as soon as you tick \"Posted on X\". Pick a date yourself to pin a post."
+ ],
+ [
+  ">Voorstellen vastzetten<",
+  ">Pin suggestions<"
+ ],
+ [
+  ">Agenda kopiëren (.ics)<",
+  ">Copy agenda (.ics)<"
+ ],
+ [
+  ">Achterstallig<",
+  ">Overdue<"
+ ],
+ [
+  "'niets gepland'",
+  "'nothing planned'"
+ ],
+ [
+  ">Meer kaarten tonen<",
+  ">Show more cards<"
+ ],
+ [
+  "Daarna staan er nog ${A.rest} posts in de wachtrij.",
+  "After that, ${A.rest} more posts are in the queue."
+ ],
+ [
+  "{prediction:'nieuwe voorspelling',anniversary:'jubileum',check:'check'}",
+  "{prediction:'new prediction',anniversary:'anniversary',check:'check'}"
+ ],
+ [
+  "jubN(p)+' JAAR GELEDEN':'JUBILEUM'",
+  "jubN(p)+' YEARS AGO':'ANNIVERSARY'"
+ ],
+ [
+  "'TUSSENSTAND':'VOORSPELLING GECHECKT'):'NIEUWE VOORSPELLING'",
+  "'PROGRESS CHECK':'PREDICTION CHECK'):'NEW PREDICTION'"
+ ],
+ [
+  "'gezegd in '+dmy(p.saidOn)",
+  "'said in '+dmy(p.saidOn)"
+ ],
+ [
+  "'Agenda gekopieerd; sla op als .ics en importeer in je agenda'",
+  "'Agenda copied; save it as .ics and import it into your calendar'"
+ ],
+ [
+  "'Gemarkeerd als gepost':'Markering weggehaald'",
+  "'Marked as posted':'Unmarked'"
+ ],
+ [
+  "'Gepland op '+fmt(t.value):'Planning weggehaald'",
+  "'Planned for '+fmt(t.value):'Plan removed'"
+ ],
+ [
+  "['OP SCHEMA','#3ed68c'];VLABEL.offsched=['NIET OP SCHEMA'",
+  "['ON TRACK','#3ed68c'];VLABEL.offsched=['OFF TRACK'"
+ ],
+ [
+  "'🟢 Op schema':'🔴 Niet op schema'",
+  "'🟢 On track':'🔴 Off track'"
+ ],
+ [
+  "'laatste meting '",
+  "'latest '"
+ ],
+ [
+  "`voorspeld ${fmt(p.saidOn)}`",
+  "`predicted ${fmt(p.saidOn)}`"
+ ],
+ [
+  "`voorspeld: ${nl(r.v)}",
+  "`predicted: ${nl(r.v)}"
+ ],
+ [
+  "'bovengrens':'ondergrens'",
+  "'upper bound':'lower bound'"
+ ],
+ [
+  "(up?'boven':'onder')+'grens'",
+  "(up?'upper':'lower')+' bound'"
+ ],
+ [
+  "'bovengrens: '+num(band.hi)",
+  "'upper bound: '+num(band.hi)"
+ ],
+ [
+  "'ondergrens: '+num(band.lo)",
+  "'lower bound: '+num(band.lo)"
+ ],
+ [
+  "(prog>=1?'laatste ':'')",
+  "(prog>=1?'latest ':'')"
+ ],
+ [
+  "ctx.measureText('laatste '",
+  "ctx.measureText('latest '"
+ ],
+ [
+  "`Bron data: ${xa(u,esc(s))} · `:''}Grafiek: ${xa(",
+  "`Data: ${xa(u,esc(s))} · `:''}Chart: ${xa("
+ ],
+ [
+  "Nog geen meetwaarden.",
+  "No measurements yet."
+ ],
+ [
+  ">gemeten</span>",
+  ">measured</span>"
+ ],
+ [
+  "verleden</span>",
+  "past</span>"
+ ],
+ [
+  "} naar de doelwaarde</span>",
+  "} to the target value</span>"
+ ],
+ [
+  "moment van voorspellen (verticale lijn)",
+  "moment of prediction (vertical line)"
+ ],
+ [
+  "trendlijn (alle metingen)",
+  "trend line (all measurements)"
+ ],
+ [
+  " · voorspelde waarde: ${esc(p.metric.target)}",
+  " · predicted value: ${esc(p.metric.target)}"
+ ],
+ [
+  "Dossier, checks en oordeel",
+  "Record, checks and verdict"
+ ],
+ [
+  ">Gemeten stand${",
+  ">Measured value${"
+ ],
+ [
+  "(artikel of cijfers die het oordeel onderbouwen)",
+  "(article or figures that back up the verdict)"
+ ],
+ [
+  "'Link naar onze X-post'",
+  "'Link to our X post'"
+ ],
+ [
+  "'Afgerond'",
+  "'Closed'"
+ ],
+ [
+  ">jaarlijkse check<",
+  ">yearly check<"
+ ],
+ [
+  "'Bron voorspelling'",
+  "'Source of prediction'"
+ ],
+ [
+  "'Bron check'",
+  "'Source of check'"
+ ],
+ [
+  "Bron voorspelling nog niet gevonden",
+  "Source of prediction not found yet"
+ ],
+ [
+  "Gecheckt ${fmt(c.date)}: ",
+  "Checked ${fmt(c.date)}: "
+ ],
+ [
+  "'Niets gevonden met dit filter.'",
+  "'Nothing matches this filter.'"
+ ],
+ [
+  "Scan een bron via <a href=\"#nieuw\">Bron scannen</a>, of wacht op de wekelijkse automatische scan.",
+  "Scan a source under <a href=\"#nieuw\">Scan a source</a>, or wait for the weekly automatic scan."
+ ],
+ [
+  "placeholder=\"Zoek op naam, onderwerp, medium\"",
+  "placeholder=\"Search by name, topic, outlet\""
+ ],
+ [
+  "Score = correct + half voor deels correct, gedeeld door het aantal beoordeelde voorspellingen.",
+  "Score = correct plus half for partly correct, divided by the number of judged predictions."
+ ],
+ [
+  "tile('Voorspelling van de dag'",
+  "tile('Prediction of the day'"
+ ],
+ [
+  "← Alle voorspellingen",
+  "← All predictions"
+ ],
+ [
+  "'Geen voorspellingen gevonden van '+esc(who)+'.'",
+  "'No predictions found by '+esc(who)+'.'"
+ ],
+ [
+  "Kon de voorspellingen niet laden",
+  "Couldn't load the predictions"
+ ],
+ [
+  "'Claude is in deze weergave niet beschikbaar; voer voorspellingen handmatig in.'",
+  "'Claude isn\\'t available in this view; enter predictions by hand.'"
+ ],
+ [
+  "'Even te veel verzoeken; probeer het zo opnieuw.'",
+  "'Too many requests just now; try again shortly.'"
+ ],
+ [
+  "'Kopiëren lukte niet; selecteer de tekst handmatig'",
+  "'Copy failed; select the text by hand'"
+ ],
+ [
+  "'Gekopieerd'",
+  "'Copied'"
+ ],
+ [
+  "'Deze browser kan geen geluid aan MP4 toevoegen; de video wordt zonder geluid opgeslagen. Probeer Chrome of Safari op een computer.'",
+  "'This browser can\\'t add sound to MP4; the video is saved without sound. Try Chrome or Safari on a computer.'"
+ ],
+ [
+  "'Video opgeslagen als WebM (X wil MP4)'",
+  "'Video saved as WebM (X needs MP4)'"
+ ],
+ [
+  "'Afbeelding gekopieerd; plak hem in de post'",
+  "'Image copied; paste it into the post'"
+ ],
+ [
+  "'Afbeeldingen kopiëren mag hier niet; gebruik Downloaden'",
+  "'Copying images isn\\'t allowed here; use Download'"
+ ],
+ [
+  "Afbeelding-URL (https, rechtenvrij; geldt voor alle voorspellingen van deze naam)",
+  "Image URL (https, free to use; applies to all predictions by this name)"
+ ],
+ [
+  "Korte toelichting (komt in de tweet)",
+  "Short note (goes into the tweet)"
+ ],
+ [
+  "Kopieer als agenda (.ics)",
+  "Copy as calendar (.ics)"
+ ],
+ [
+  "Tempo voor voice-over",
+  "Pace for voice-over"
+ ],
+ [
+  ">Gepland op <",
+  ">Planned for <"
+ ],
+ [
+  "> Gepost op ${lb}",
+  "> Posted on ${lb}"
+ ],
+ [
+  ">tijd</option>",
+  ">time</option>"
+ ],
+ [
+  "Meer tonen (nog ${L.length-plimit})",
+  "Show more (${L.length-plimit} left)"
+ ],
+ [
+  "<p>De doeldatum is nog niet bereikt, of de cijfers zijn nog niet bekend.</p>",
+  "<p>The target date hasn't arrived yet, or the figures aren't out yet.</p>"
+ ],
+ [
+  "<p>Nog niet af, maar de tussenstand ligt op koers: de gemeten waarde zit op of voorbij de lijn van de start naar de voorspelde uitkomst.</p>",
+  "<p>Not over yet, but the progress check is on course: the measured value is on or beyond the line from the start to the predicted outcome.</p>"
+ ],
+ [
+  "<p>Nog niet af, maar de tussenstand loopt achter: bij dit tempo wordt de voorspelde uitkomst op de doeldatum niet gehaald.</p>",
+  "<p>Not over yet, and the progress check is behind: at this pace the predicted outcome won't be reached by the target date.</p>"
+ ],
+ [
+  "Zag je een voorspelling die we moeten volgen, of denk je dat een check niet klopt? Laat het weten via het tipformulier of via",
+  "Spotted a prediction we should follow, or think a check is wrong? Let us know through the tip form or"
+ ],
+ [
+  "<span class=\"sticker\">checkt alles</span>",
+  "<span class=\"sticker\">checks everything</span>"
+ ],
+ [
+  "'Bekijk op X'",
+  "'View on X'"
+ ],
+ [
+  "voorspelde route${",
+  "predicted path${"
+ ],
+ [
+  "Volg @voorspellingchk",
+  "Follow @predictionchk"
+ ],
+ [
+  "\\n\\nBron en volledige check: link in bio (voorspellingschecker.nl)",
+  "\\n\\nSource and full check: link in bio (predictionchk.com)"
+ ],
+ [
+  "x\\.com\\/voorspellingchk",
+  "x\\.com\\/predictionchk"
+ ],
+ [
+  "@voorspellingschecker`",
+  "@predictionchk`"
+ ],
+ [
+  "<h3>Eerstvolgende checks</h3>",
+  "<h3>Next checks due</h3>"
+ ],
+ [
+  "`${n} tekens · X max 280",
+  "`${n} characters · X max 280"
+ ],
+ [
+  "' · <span class=\"tag\">vastgezet</span>':' · <span class=\"tag\">voorstel</span>'",
+  "' · <span class=\"tag\">pinned</span>':' · <span class=\"tag\">suggested</span>'"
+ ],
+ [
+  "' · <i>overgeslagen</i>'",
+  "' · <i>skipped</i>'"
+ ],
+ [
+  "`${pick.length} opgeslagen`",
+  "`${pick.length} saved`"
+ ],
+ [
+  "`Opnemen… ${",
+  "`Recording… ${"
+ ],
+ [
+  "'tussentijdse check':'eindcheck'",
+  "'interim check':'final check'"
+ ],
+ [
+  "`${w.length} posts vastgezet`",
+  "`${w.length} posts pinned`"
+ ],
+ [
+  "return 'Overig'}",
+  "return 'Other'}"
+ ]
+]

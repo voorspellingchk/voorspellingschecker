@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Voorspellingschecker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a fact-check desk with a grin: sceptical, quick, a little cheeky.
+   IDEA: a night-shift newsroom ledger: public claims on deep-blue paper, stamped with a verdict when their date comes due.
+   PICTURE: the live scoreboard in the header, then calm blue cards; yellow only where the eye should land.
+   COLOUR and TYPE: 60-30-10: deep navy ground, lighter blue surfaces, signal yellow accent; verdict stamps green/orange/red/sky; Space Grotesk heads, Plex Sans text.
+   LAYOUT: dark header with scoreboard, sticky tab bar, a dashboard of tiles, then the ledger. */
+:root{color-scheme:dark;
+--yel:#ffd23f;--yel-soft:#ffd23f22;--deep:#0b1430;
+--bg:#0e1a3d;--paper:#15244f;--raised:#1b2d5f;--ink:#eef1fa;--mute:#a7b1d0;--line:#28396f;--line2:#344886;
+--ok:#3ed68c;--no:#ff6b6b;--part:#ff9f43;--early:#8fb3ff;--open:#8a93b5;--acc:#ffd23f;--blue:#4c6fff;
+--yel-ink:#ffd23f;--on-yel:#0b1430;--navbg:#0b1430ee;--shadow:#050b2266;--glow:#2a4bd155}
+:root[data-theme=light]{color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}
+@media (prefers-color-scheme:light){:root:not([data-theme=dark]){color-scheme:light;--yel:#f7c600;--yel-soft:#f7c60033;--deep:#e4e9f6;--bg:#f4f6fb;--paper:#ffffff;--raised:#eef1f9;--ink:#121a38;--mute:#56608a;--line:#d9dfee;--line2:#bcc6e2;--ok:#138a55;--no:#cf3434;--part:#c96a0c;--early:#3b6bd8;--open:#6c7499;--acc:#c99a00;--blue:#3456e0;--yel-ink:#8a6400;--on-yel:#0b1430;--navbg:#ffffffe6;--shadow:#1a2a5a14;--glow:#ffd23f40}}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "IBM Plex Sans",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Space Grotesk",system-ui,sans-serif;line-height:1.05;margin:0;text-wrap:balance}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+header.band{background:radial-gradient(1200px 420px at 85% -10%,var(--glow),transparent 60%),var(--deep);color:var(--ink);position:relative;overflow:hidden;border-bottom:1px solid var(--line)}
+header h1{font-size:clamp(36px,6vw,64px);font-weight:700;letter-spacing:-.03em}
+header h1 .sticker{display:inline-block;background:var(--yel);color:var(--on-yel);font-size:.3em;letter-spacing:0;padding:6px 10px;border-radius:6px;transform:rotate(-4deg) translateY(-.9em);margin-left:10px;vertical-align:middle}
+header p{margin:12px 0 0;color:var(--mute);max-width:62ch;font-size:17px}
+header a{color:var(--yel-ink);font-weight:600}
+.board{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(20px,4vw,48px);margin-top:28px;position:relative;z-index:1}
+.bar{display:flex;height:40px;border-radius:10px;overflow:hidden;background:var(--paper);gap:3px}
+.bar span{display:block;height:100%;transition:width .5s}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:14px;color:var(--mute)}
+.legend b{font:700 22px "Space Grotesk",sans-serif;color:var(--ink);margin-right:4px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.due{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 18px}
+.due h3{font-size:15px;font-weight:700;color:var(--yel-ink);margin-bottom:6px}
+.due ol{list-style:none;margin:0;padding:0}
+.due li{display:grid;grid-template-columns:6.5em minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer;color:var(--ink)}
+.due li:hover{color:var(--yel-ink)}
+.due time{font:700 14px "Space Grotesk",sans-serif;white-space:nowrap;color:var(--ink)}.due .late{color:var(--no)}
+nav{position:sticky;top:0;z-index:5;background:var(--navbg);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:6px;padding:10px max(5vw,16px);overflow-x:auto}
+nav a{flex:none;padding:8px 16px;color:var(--mute);text-decoration:none;font:700 15px "Space Grotesk",sans-serif;border-radius:99px}
+nav a:hover{color:var(--ink);background:var(--paper)}
+nav a[aria-current]{background:var(--yel);color:var(--on-yel)}
+main .band{padding-top:24px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:18px}
+input,textarea,select{font:16px "IBM Plex Sans",sans-serif;color:var(--ink);background:var(--paper);border:1px solid var(--line2);border-radius:10px;background:var(--bg);padding:10px 12px;width:100%}
+textarea{min-height:120px;resize:vertical}
+input:focus,textarea:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button,.btn{font:700 15px "Space Grotesk",sans-serif;min-height:44px;padding:0 18px;border-radius:99px;border:2px solid var(--yel);background:var(--yel);color:var(--on-yel);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+button.ghost,.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line2)}
+button.ghost:hover,.btn.ghost:hover{border-color:var(--yel-ink);color:var(--yel-ink)}
+button:not(.chip):not(.ghost):hover,.btn:not(.ghost):hover{filter:brightness(1.08)}
+button:disabled{opacity:.45;cursor:default}
+.chip{min-height:36px;padding:0 12px;font-size:14px;border-radius:99px;background:transparent;color:var(--ink);border-color:var(--line)}
+.chip{border-width:1px;border-color:var(--line2)}.chip:hover{border-color:var(--yel-ink)}.chip[aria-pressed=true]{background:var(--yel);color:var(--on-yel);border-color:var(--yel-ink)}
+#q{max-width:300px;flex:1 1 200px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px var(--shadow);padding:18px 20px;margin-bottom:12px;position:relative}
+.card .who{font:700 17px "Space Grotesk",sans-serif}.card .role{color:var(--mute);font-size:14px}
+.claim{font-size:18px;margin:8px 0 6px;max-width:68ch}
+.meta{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:14px;color:var(--mute)}
+.meta span{white-space:nowrap}.meta a{color:var(--ink)}
+.stamp{position:absolute;top:16px;right:18px;background:var(--paper);font:700 13px "Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.06em;padding:5px 9px;border:2px solid currentColor;border-radius:4px;transform:rotate(-3deg)}
+.stamp[class*="v-"]{color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(0,0,0,.18)}.stamp.v-correct{background:#138a55}.stamp.v-incorrect{background:#cf3434}.stamp.v-partial{background:#c96a0c}.stamp.v-tooearly{background:#3b6bd8}.stamp.v-open{background:#6c7499}.stamp.v-onsched{background:#138a55}.stamp.v-offsched{background:#cf3434}
+.wholine{display:flex;align-items:center;gap:10px}.wholine>span:last-child{min-width:0}.wholine>.plink:first-child,.wholine>.av{flex:none}
+.av{position:relative;flex:none;width:38px;height:38px;border-radius:50%;display:inline-grid;place-items:center;font:700 13px/1 "Space Grotesk",sans-serif;color:#fff;letter-spacing:.02em;overflow:hidden;box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--line2)}
+.av.org{border-radius:9px;font-size:11px}.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--paper)}
+.av.lg{width:54px;height:54px;font-size:17px}.av.xl{width:88px;height:88px;font-size:28px}.av.xl.org{font-size:22px}
+.plink{color:inherit;text-decoration:none;display:inline-flex}a.who.plink{display:inline}a.who.plink:hover,.plink.more:hover{text-decoration:underline}.plink:hover .av{filter:brightness(1.12)}.plink.more{color:var(--yel-ink);font-weight:600}
+.phead{display:flex;align-items:center;gap:18px;margin:6px 0 18px}.phead h2{font-size:34px;margin:0}.phead .role{color:var(--mute);margin:4px 0 0}.backlink{margin:0 0 10px}.backlink a{color:var(--mute)}.precap{margin-bottom:22px}.plisthead{font-size:20px;margin:0 0 12px}.av.lg.org{font-size:14px}
+.imgcredit{font-size:12px;color:var(--mute);margin-top:8px}
+.card .head{padding-right:150px}
+.v-correct{color:var(--ok)}.v-incorrect{color:var(--no)}.v-partial{color:var(--part)}.v-tooearly{color:var(--early)}.v-open{color:var(--open)}
+.tweet{margin-top:12px;border-left:3px solid var(--yel);background:var(--bg);border-radius:0 8px 8px 0;padding-right:10px;padding:4px 0 4px 12px;font-size:15px;white-space:pre-wrap}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.count{font-size:13px;color:var(--mute)}
+.sitefoot{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--mute);font-size:14px}.sitefoot .wrap{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;text-align:center}.sitefoot a{color:inherit}
+.themeseg{display:inline-flex;gap:2px;border:1px solid var(--line);border-radius:99px;padding:3px;background:var(--paper)}.themeseg button{all:unset;cursor:pointer;font-size:13px;padding:6px 12px;border-radius:99px;color:var(--mute)}.themeseg button:hover{color:var(--ink)}.themeseg button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:600}.themeseg button:focus-visible{outline:2px solid var(--yel-ink);outline-offset:1px}
+.credit{font-size:12px;color:var(--mute);margin:4px 0 0;opacity:.85}.credit a{color:inherit;text-decoration:underline;text-underline-offset:2px}.credit a:hover{color:var(--ink)}.count.over{color:var(--no);font-weight:600}
+details.dossier{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+details.dossier summary{cursor:pointer;font:600 15px "Space Grotesk",sans-serif;min-height:32px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:12px}
+label{display:block;font-size:13px;color:var(--mute)}
+label>input,label>select,label>textarea{margin-top:4px}
+.fig{position:relative;height:220px;margin-top:14px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:10px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mute);font-weight:500}
+.month{margin:22px 0 6px;font:700 22px "Space Grotesk",sans-serif}
+.cal li{cursor:pointer}.cal li:hover{background:var(--paper)}.cal li:hover b{color:var(--yel-ink)}
+.card.flash{border-color:var(--yel);box-shadow:0 0 0 3px var(--yel-soft),0 10px 30px var(--shadow);transition:box-shadow .3s,border-color .3s}
+.cal li{list-style:none;display:grid;grid-template-columns:5.5em minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:baseline}
+.cal{padding:0;margin:0}.cal time{font:700 16px "Space Grotesk",sans-serif;white-space:nowrap}
+.tag{font-size:12px;padding:2px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mute);white-space:nowrap}
+.empty{padding:36px;text-align:center;color:var(--mute);border:1px dashed var(--line);border-radius:8px}
+.srcbox{display:inline-flex;align-items:center;gap:4px;margin:6px 0 0;padding:3px 9px;border:1px solid var(--line);border-radius:7px;background:var(--deep);color:var(--ink);font-size:12.5px;font-weight:600;text-decoration:none;white-space:nowrap}.srcbox:hover{border-color:var(--yel-ink);color:var(--yel-ink)}td .srcbox{display:flex;width:max-content}
+.note{font-size:14px;color:var(--mute);max-width:70ch}
+.cand{border-left:4px solid var(--acc)}
+.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:14px;grid-auto-flow:row dense}
+.tile{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px var(--shadow);transition:transform .15s,box-shadow .15s;padding:18px 20px;position:relative}
+.tile[data-open]{cursor:pointer}.tile[data-open]:hover{transform:translateY(-2px);border-color:var(--yel-ink)}
+.tile a{color:inherit}
+.tile>h3{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--yel-ink);margin:0 0 12px}.tile>h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--yel)}
+.tile .claim{font-size:17px}.tile .head{padding-right:120px}
+.tile.wide{grid-column:1/-1}
+.kicker{font:700 15px "Space Grotesk",sans-serif;margin:0 0 6px}
+.pill{display:inline-block;font:700 13px "Space Grotesk",sans-serif;padding:4px 10px;border-radius:99px;color:var(--on-yel);white-space:nowrap}
+.mini{list-style:none;margin:10px 0 0;padding:0;max-height:420px;overflow:auto}
+.mini li{display:grid;grid-template-columns:6.5em 5.5em minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.mini li:hover{background:var(--bg)}
+.mini b{font:700 11px "Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.04em}
+.score{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;margin:12px 0 8px}
+.score .big{font:700 40px/1 "Space Grotesk",sans-serif}
+.minibar{display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--line)}
+.minibar span{height:100%}
+.catrow{display:grid;grid-template-columns:12em minmax(0,1fr) 2.5em;gap:10px;align-items:center;padding:7px 0;cursor:pointer;border-top:1px solid var(--line);font-size:14px}
+.catrow:hover{background:var(--bg)}.catrow .n{text-align:right;font-weight:600}
+.catrow .catbar{display:flex;height:16px;border-radius:3px;overflow:hidden}
+@media(max-width:600px){.tile .head{padding-right:0}.catrow{grid-template-columns:8.5em minmax(0,1fr) 2em}.mini li{grid-template-columns:5.5em minmax(0,1fr)}.mini li b{display:none}}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:6px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+[hidden]{display:none!important}
+body:not(.pub) .pubonly,body.pub .edonly{display:none!important}
+.pcard{display:grid;grid-template-columns:minmax(0,340px) 1fr;gap:24px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;margin:0 0 18px}
+.pimg canvas{width:100%;height:auto;border-radius:12px;display:block;border:1px solid var(--line);cursor:pointer}
+.pkind{margin:0 0 10px;color:var(--mute);font-size:14px}.pkind b{color:var(--yel-ink)}
+.pbody textarea{width:100%}.pbody .row{margin-top:10px;flex-wrap:wrap}
+.preply{margin-top:10px}.preply pre{white-space:pre-wrap;font:14px/1.5 "IBM Plex Sans",sans-serif;background:var(--raised);padding:10px 12px;border-radius:10px;margin:8px 0}
+.pst{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.pst label{display:flex;flex-direction:row;align-items:center;gap:6px;font-size:15px}
+.count.over{color:var(--no)}
+.agday{font-size:22px;margin:26px 0 10px;display:flex;gap:10px;align-items:baseline}.agday.late{color:var(--no)}.agtop{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin:0 0 6px}.ptime{display:inline-block;background:var(--yel);color:var(--on-yel);font-weight:700;border-radius:6px;padding:1px 7px;font-size:13px}.agmini{margin:6px 0;color:var(--mute)}.pplan input[type=date]{width:auto;padding:4px 6px;font-size:14px}.pplan select{width:auto;padding:4px 6px;font-size:14px}
+.pst input[type=checkbox],#v-post .tools input[type=checkbox]{width:auto;flex:none;margin:0}.pst label,#v-post .tools label{white-space:nowrap;margin:0}
+@media (max-width:700px){.pcard{grid-template-columns:1fr}.pimg{max-width:360px}}
+.tile .who{font:700 17px "Space Grotesk",sans-serif}.tile .role{color:var(--mute);font-size:14px}
+header .cta{position:relative;z-index:1;margin-top:18px}
+.over>*{max-width:820px}.over>.verdicts{max-width:1000px}.over h2{font-size:clamp(28px,4vw,40px);margin-bottom:12px}.over h3{font-size:22px;margin:28px 0 6px}.over p{max-width:68ch}
+.verdicts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px;margin:20px 0}
+.verdicts>div{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+.verdicts .stamp{position:static;display:inline-block}.verdicts p{margin:10px 0 0;font-size:15px}
+@media(max-width:700px){.board{grid-template-columns:minmax(0,1fr)}.card .head{padding-right:0}.stamp{top:14px;right:12px;font-size:10.5px;padding:4px 7px}.tile>h3,.card .head>:first-child{padding-right:84px}.verdicts .stamp{position:static}.meta a,.meta span:has(a){white-space:normal;overflow-wrap:anywhere;min-width:0}.cal li{grid-template-columns:5em minmax(0,1fr)}.cal li .tag{grid-column:2}}
+@media(prefers-reduced-motion:reduce){.bar span{transition:none}}
+</style>
+<script>try{const t=localStorage.getItem('vc-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body>
+<header class="band"><div class="wrap">
+  <h1>Voorspellingschecker<span class="sticker">checkt alles</span></h1>
+  <p>Checkt alle voorspellingen. Voorspelling gezien? Stuur een tip naar De Voorspellingschecker.</p>
+  <div class="row pubonly cta"><a class="btn tipbtn" target="_blank" rel="noopener">Voorspelling insturen</a><a class="btn ghost" href="https://x.com/voorspellingchk" target="_blank" rel="noopener">Volg @voorspellingchk</a></div>
+  <div class="board">
+    <div><div class="bar" id="bar" aria-label="Verdeling van oordelen"></div><div class="legend" id="legend"></div></div>
+    <div class="due"><h3>Eerstvolgende checks</h3><ol id="due"><li><span></span><span>Laden…</span></li></ol></div>
+  </div>
+</div></header>
+<nav><div class="wrap">
+  <a href="#overzicht" data-v="overzicht">Overzicht</a>
+  <a href="#ledger" data-v="ledger">Voorspellingen</a>
+  <a href="#kalender" data-v="kalender">Checkkalender</a>
+  <a href="#nieuw" data-v="nieuw" class="edonly">Bron scannen</a>
+  <a href="#post" data-v="post" class="edonly">Posten</a>
+  <a href="#over" data-v="over" class="pubonly">Hoe wij checken</a>
+</div></nav>
+<main>
+<section class="band" id="v-overzicht"><div class="wrap">
+  <div class="dash" id="dash"></div>
+</div></section>
+<section class="band" id="v-ledger" hidden><div class="wrap">
+  <div class="tools" id="filters"></div>
+  <div id="list"></div>
+</div></section>
+<section class="band" id="v-persoon" hidden><div class="wrap">
+  <div id="person"></div>
+</div></section>
+<section class="band" id="v-kalender" hidden><div class="wrap">
+  <div class="tools"><h2 style="font-size:32px;flex:1 1 auto">Checkkalender</h2><button class="ghost" id="ics">Kopieer als agenda (.ics)</button></div>
+  <p class="note">Elke voorspelling krijgt een checkdatum. Loopt een voorspelling langer dan twee jaar, dan komt er elk jaar een tussentijdse check bij tot de doeldatum.</p>
+  <div id="cal"></div>
+</div></section>
+<section class="band" id="v-over" hidden><div class="wrap over">
+  <h2>Hoe wij checken</h2>
+  <p>De Voorspellingschecker legt voorspellingen van wetenschappers, politici, columnisten, bestuurders, planbureaus en andere bekende stemmen vast op het moment dat ze worden gedaan. Daarbij noteren we wie het zei, wanneer, waar en een link naar de bron. Elke voorspelling krijgt een checkdatum. Loopt een voorspelling langer dan twee jaar, dan kijken we elk jaar hoe het ervoor staat, waar mogelijk met een grafiek.</p>
+  <div class="verdicts">
+    <div><span class="stamp v-correct">Correct</span><p>De voorspelde uitkomst is uitgekomen. Afwijkingen van 10 à 20% rekenen we niet fout.</p></div>
+    <div><span class="stamp v-partial">Deels</span><p>De kern klopt, maar een deel niet: bijvoorbeeld de richting wel, de omvang of het moment niet.</p></div>
+    <div><span class="stamp v-incorrect">Onjuist</span><p>De uitkomst wijkt duidelijk af van wat werd voorspeld.</p></div>
+    <div><span class="stamp v-tooearly">Te vroeg</span><p>De doeldatum is nog niet bereikt, of de cijfers zijn nog niet bekend.</p></div>
+    <div><span class="stamp v-onsched">Op schema</span><p>Nog niet af, maar de tussenstand ligt op koers: de gemeten waarde zit op of voorbij de lijn van de start naar de voorspelde uitkomst.</p></div>
+    <div><span class="stamp v-offsched">Niet op schema</span><p>Nog niet af, maar de tussenstand loopt achter: bij dit tempo wordt de voorspelde uitkomst op de doeldatum niet gehaald.</p></div>
+  </div>
+  <p>Noemt iemand meerdere scenario's, dan toetsen we het scenario dat als meest waarschijnlijk werd gepresenteerd. Een voorspelling is geen oordeel over de persoon: ook goede experts zitten er soms naast, en dat is precies wat het checken interessant maakt.</p>
+  <h3>Tip of correctie?</h3>
+  <p>Zag je een voorspelling die we moeten volgen, of denk je dat een check niet klopt? Laat het weten via het tipformulier of via <a href="https://x.com/voorspellingchk" target="_blank" rel="noopener">@voorspellingchk</a> op X. We controleren elke tip aan de hand van de bron voordat die op de site komt.</p>
+  <div class="row"><a class="btn tipbtn" target="_blank" rel="noopener">Voorspelling insturen</a></div>
+</div></section>
+<section class="band" id="v-post" hidden><div class="wrap">
+  <div class="tools"><h2 style="font-size:32px;flex:1 1 auto">Posten</h2><div class="row" id="pfilters" style="margin:0"></div><label style="display:flex;flex-direction:row;gap:6px;align-items:center;font-size:15px"><input type="checkbox" id="psound" checked> Geluidseffecten</label><label style="display:flex;flex-direction:row;gap:6px;align-items:center;font-size:15px" title="Vertraagt het typen tot spreektempo, zodat een voice-over die de tekst voorleest in de video past"><input type="checkbox" id="pvopace"> Tempo voor voice-over</label></div>
+  <p class="note">Kant-en-klare posts met een geanimeerde video (de voorspelling wordt uitgetypt, de grafiek tekent zichzelf en dan valt het stempel met het oordeel) of een stilstaande afbeelding. Druk op ▶ Afspelen of klik op de afbeelding voor een voorbeeld. Controleer de tekst, download de video of afbeelding, open X of Bluesky met de tekst al ingevuld, voeg de afbeelding toe en druk op Posten. Voor Instagram: download de afbeelding en kopieer het bijschrift. Zet de bronlink in je eerste reply, niet in de post zelf. Vink daarna aan waar je hem gepost hebt.</p>
+  <div id="posts"></div>
+</div></section>
+<section class="band" id="v-nieuw" hidden><div class="wrap">
+  <h2 style="font-size:32px">Bron scannen</h2>
+  <p class="note">Plak een transcript van een podcast of uitzending, of de tekst van een artikel. Claude zoekt de uitspraken die als voorspelling te toetsen zijn, en schrijft er een tweet en een checkdatum bij. De wekelijkse automatische scan doet hetzelfde met nieuws van het web.</p>
+  <div class="grid">
+    <label>Titel van de bron<input id="s-title" placeholder="Bijv. Argos, aflevering over energie"></label>
+    <label>Medium<input id="s-outlet" placeholder="NPO Radio 1, NRC, Volkskrant…"></label>
+    <label>Datum uitzending / publicatie<input id="s-date" type="date"></label>
+    <label>Link<input id="s-url" type="url" placeholder="https://"></label>
+  </div>
+  <label style="margin-top:12px">Transcript of tekst<textarea id="s-text" style="min-height:220px"></textarea></label>
+  <div class="row"><button id="scan">Zoek voorspellingen</button><button class="ghost" id="manual">Zelf een voorspelling invoeren</button><span class="count" id="scanmsg"></span></div>
+  <div id="cands" style="margin-top:20px"></div>
+</div></section>
+</main>
+<footer class="sitefoot"><div class="wrap">
+  <span>Voorspellingschecker · <a href="https://x.com/voorspellingchk" target="_blank" rel="noopener">@voorspellingchk</a></span>
+  <div class="themeseg" role="group" aria-label="Weergave">
+    <button type="button" data-theme-set="auto">Automatisch</button><button type="button" data-theme-set="light">☀ Licht</button><button type="button" data-theme-set="dark">☾ Donker</button>
+  </div>
+</div></footer>
+<div id="toast" role="status"></div>
+<script>
+{
+const $=s=>document.querySelector(s);
+const PUB=window.VC_PUBLIC||null;
+if(PUB){document.body.classList.add('pub');document.querySelectorAll('.tipbtn').forEach(a=>{if(PUB.tipUrl)a.href=PUB.tipUrl;else a.remove()})}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* avatars: eigen afbeelding (veld img, per naam) of initialen */
+const ORG_AC=/^[A-Z0-9&.\- ]{2,}$|\b(NOS|ING|ABN|KNMI|RIVM|CPB|CBS|PBL|DNB|IEA|IPCC|COA|SAGE|CDC|IKNL|LCPS|PwC|VN)\b/;
+const ORG_W=/planbureau|bureau|bank|instituut|institute|universiteit|university|agentschap|agency|kabinet|regering|overheid|dienst|team|panel|modellen|experts|deskundigen|council|organisatie|comit|centrum|centre|center|economist|telegraaf|spiegel|australian|rabobank|goldman|quantumscape|oxfam|weer\.nl|met office|politie|weersverwachting|onderzoek|insider/i;
+const isOrg=w=>!!w&&!/ vs /.test(w)&&(ORG_AC.test(w)||ORG_W.test(w));
+const PART=/^(van|de|der|den|het|'t|ten|ter|te|von|da|di|le|la|du|dr\.?|prof\.?|sir)$/i;
+function initials(w){w=(w||'?').replace(/\(.*?\)/g,'').trim();
+  if(/ vs /.test(w))return w.split(/ vs /).slice(0,2).map(x=>initials(x).charAt(0)).join('');
+  const first=w.split(/[\s,/]+/)[0];
+  if(isOrg(w)){if(/^[A-Z0-9&]{2,5}$/.test(first))return first;const caps=w.split(/[\s,/]+/).filter(x=>/^[A-Z]/.test(x)&&!PART.test(x));return (caps.length>1?caps.slice(0,3).map(x=>x[0]).join(''):w.replace(/[^A-Za-z0-9]/g,'').slice(0,3)).toUpperCase()}
+  if(/ en /.test(w))return w.split(/ en /).slice(0,2).map(x=>initials(x).charAt(0)).join('');
+  const ws=w.split(/\s+/).filter(x=>!PART.test(x)&&!/^e\.a\.?$/.test(x)&&/[A-Za-zÀ-ÿ]/.test(x));if(!ws.length)return w[0].toUpperCase();
+  return (ws[0][0]+(ws.length>1?ws[ws.length-1][0]:'')).toUpperCase()}
+const hue=w=>{let h=0;for(const c of String(w))h=(h*31+c.charCodeAt(0))>>>0;return h%360};
+let IMGS={};
+function buildImgs(){IMGS={};items.forEach(p=>{if(p.img&&/^https:\/\//.test(p.img)&&!IMGS[p.who])IMGS[p.who]={src:p.img,credit:p.imgCredit||''}})}
+function avatar(who,cls=''){const im=IMGS[who];
+  return `<span class="av${isOrg(who)?' org':''}${cls?' '+cls:''}" style="background:hsl(${hue(who)} 48% 40%)" aria-hidden="true">${esc(initials(who))}${im?`<img src="${esc(im.src)}" alt="" loading="lazy" referrerpolicy="no-referrer" title="${esc(im.credit)}" onerror="this.remove()">`:''}</span>`}
+const plink=w=>`#persoon/${encodeURIComponent(w)}`;
+const whoLine=p=>`<div class="wholine"><a class="plink" href="${plink(p.who)}" data-person="${esc(p.who)}" aria-label="Alle voorspellingen van ${esc(p.who)}">${avatar(p.who)}</a><span><a class="who plink" href="${plink(p.who)}" data-person="${esc(p.who)}">${esc(p.who)}</a> <span class="role">${esc(p.role)}</span></span></div>`;
+const imgCredit=p=>{const im=IMGS[p.who];return im&&im.credit?`<p class="imgcredit">Afbeelding: ${esc(im.credit)}</p>`:''};
+const V={open:['Open','Nog niet gecheckt'],tooearly:['Te vroeg','Te vroeg om te zeggen'],correct:['Correct','Correcte voorspelling'],partial:['Deels','Deels correct'],incorrect:['Onjuist','Onjuiste voorspelling']};
+const VC={open:'--open',tooearly:'--early',correct:'--ok',partial:'--part',incorrect:'--no'};
+const EMO={correct:'✅ Correcte voorspelling',incorrect:'❌ Onjuiste voorspelling',partial:'🟠 Deels correct',tooearly:'⏳ Te vroeg om te zeggen',open:'🔮'};
+const today=()=>new Date().toISOString().slice(0,10);
+const addY=(d,n)=>{const x=new Date(d+'T12:00:00');x.setFullYear(x.getFullYear()+n);return x.toISOString().slice(0,10)};
+const fmt=d=>d?new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short',year:'numeric'}):'—';
+const MAXT=280;
+let db=null,sample=null,items=[],filt='all',q='',cat='',cands=[],canWrite=true,upIdx=0,recapWho='';
+const CATS=[['Corona & gezondheid',/corona|gezondheid|zorg/i],['Klimaat & weer',/klimaat|weer|zee|natuur|water|aardbeving/i],['Energie',/energie/i],['Economie & woningmarkt',/econom|inflatie|woning|beurs|crypto|voedsel|landbouw/i],['Conflicten & geopolitiek',/geopolitiek|veiligheid|oorlog/i],['Politiek & overheid',/politiek|peiling|overheid/i],['Technologie',/technolog|auto|scheepvaart|ict|privacy/i],['Bevolking & migratie',/bevolking|migratie|taal/i],['Media, sport & cultuur',/media|sport|showbizz/i],['Luchtig',/luchtig/i]];
+const catOf=p=>{const t=p.topic||'';for(const[n,r]of CATS)if(r.test(t))return n;return 'Overig'};
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2200)};
+const copy=async t=>{try{await navigator.clipboard.writeText(t);toast('Gekopieerd')}catch{toast('Kopiëren lukte niet; selecteer de tekst handmatig')}};
+
+/* scheduling: first check on target date (or 1 year out); yearly interim checks when target is >2 years away */
+function plan(p){
+  const said=p.saidOn||today(),target=p.targetDate||null;
+  const yearly=!!target&&target>addY(said,2);
+  let next=target||addY(said,1);
+  if(yearly){next=addY(said,1);while(next<today()&&next<target)next=addY(next,1);if(next>target)next=target}
+  return{recurrence:yearly?'yearly':'once',nextCheck:next};
+}
+function nextAfterCheck(p,date,verdict){
+  if(['correct','incorrect','partial'].includes(verdict)&&(!p.targetDate||date>=p.targetDate))return null;
+  if(p.recurrence==='yearly'&&p.targetDate&&date<p.targetDate){const n=addY(date,1);return n>p.targetDate?p.targetDate:n}
+  if(p.targetDate&&date<p.targetDate)return p.targetDate;
+  return verdict==='tooearly'?addY(date,1):null;
+}
+function tweetFor(p){
+  const cs=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  if(['correct','partial','incorrect'].includes(p.verdict)&&cs.length)return verdictTweet(p,{...cs[0],verdict:p.verdict});
+  return `🔮 ${p.who}${p.role?` (${p.role})`:''} voorspelde${p.outlet?` in ${p.outlet}`:''}${p.saidOn?` op ${fmt(p.saidOn)}`:''}: ${p.claim}\n\n${p.nextCheck?`📅 Wij checken dit op ${fmt(p.nextCheck)}.`:''}`.trim();
+}
+function verdictTweet(p,c){
+  const yr=p.saidOn?` (${p.saidOn.slice(0,4)})`:'';
+  const val=!c.note&&c.value!=null&&c.value!==''?`Stand ${fmt(c.date)}: ${c.value}${p.metric?.unit?' '+p.metric.unit:''}`:'';
+  const mk=cl=>`${EMO[c.verdict]}\n\n${p.who}${yr}: ${cl}\n\n${c.note||val}${c.url?'\n'+c.url:''}`.replace(/\n{3,}/g,'\n\n').trim();
+  let t=mk(p.claim);
+  if(t.length>MAXT){const cut=t.length-MAXT+1;t=mk(p.claim.slice(0,Math.max(40,p.claim.length-cut)).replace(/\s+\S*$/,'')+'…')}
+  return t;
+}
+function srcUrl(c){return c.url||((c.sources||'').match(/https?:\/\/[^\s,·]+/)||[''])[0]}
+function srcRest(c){return (c.sources||'').replace(srcUrl(c),'').replace(/^[\s·,;]+|[\s·,;]+$/g,'')}
+function srcLink(c){const u=srcUrl(c);if(!u)return'';let h='';try{h=new URL(u).hostname.replace(/^www\./,'')}catch{return''}if(/^(x|twitter)\.com$/.test(h))h='X';return`<a class="srcbox" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}">Bron: ${esc(h)} ↗</a>`}
+
+/* ---------- board ---------- */
+function board(){
+  const n={open:0,tooearly:0,correct:0,partial:0,incorrect:0};items.forEach(p=>n[p.verdict||'open']++);
+  const tot=items.length||1;
+  $('#bar').innerHTML=Object.keys(n).map(k=>`<span title="${V[k][1]}: ${n[k]}" style="width:${n[k]/tot*100}%;background:var(${VC[k]})"></span>`).join('');
+  $('#legend').innerHTML=Object.keys(n).map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span><b>${n[k]}</b>${V[k][1]}</span>`).join('');
+  const up=items.filter(p=>p.nextCheck).sort((a,b)=>a.nextCheck.localeCompare(b.nextCheck)).slice(0,3);
+  $('#due').innerHTML=up.length?up.map(p=>`<li data-open="${esc(p.id)}"><time class="${p.nextCheck<today()?'late':''}">${fmt(p.nextCheck)}</time><span>${esc(p.who)}: ${esc(p.claim.slice(0,80))}${p.claim.length>80?'…':''}</span></li>`).join(''):'<li><span></span><span>Nog geen checks gepland.</span></li>';
+}
+
+/* ---------- ledger ---------- */
+function filters(){
+  $('#filters').innerHTML=`<input id="q" type="search" placeholder="Zoek op naam, onderwerp, medium" value="${esc(q)}">`+
+   ['all','open','tooearly','correct','partial','incorrect'].map(k=>`<button class="chip" data-f="${k}" aria-pressed="${filt===k}">${k==='all'?'Alles':V[k][0]}</button>`).join('')+
+   `<button class="chip" data-f="due" aria-pressed="${filt==='due'}">Check verlopen</button>`+
+   `<select id="catsel" style="width:auto;min-height:36px;padding:4px 10px"><option value="">Alle onderwerpen</option>${CATS.map(c=>c[0]).concat('Overig').map(c=>`<option ${c===cat?'selected':''}>${c}</option>`).join('')}</select>`;
+}
+function list(){
+  let L=items.slice();
+  if(filt==='due')L=L.filter(p=>p.nextCheck&&p.nextCheck<=today());else if(filt!=='all')L=L.filter(p=>(p.verdict||'open')===filt);
+  if(cat)L=L.filter(p=>catOf(p)===cat);
+  if(q){const s=q.toLowerCase();L=L.filter(p=>[p.who,p.role,p.claim,p.outlet,p.topic].join(' ').toLowerCase().includes(s))}
+  L.sort((a,b)=>(b.saidOn||'').localeCompare(a.saidOn||''));
+  $('#list').innerHTML=L.length?L.map(p=>card(p)).join(''):`<div class="empty">${items.length?'Niets gevonden met dit filter.':(PUB?'Nog geen voorspellingen.':'Nog geen voorspellingen. Scan een bron via <a href="#nieuw">Bron scannen</a>, of wacht op de wekelijkse automatische scan.')}</div>`;
+  L.forEach(p=>chart(p));
+}
+const isOwnX=u=>/x\.com\/voorspellingchk/i.test(u||'');
+const origSrc=p=>p.sourceUrl&&!isOwnX(p.sourceUrl)?p.sourceUrl:'';
+const xPost=p=>p.xUrl||(isOwnX(p.sourceUrl)?p.sourceUrl:'');
+const lastChkSrc=p=>(p.checks||[]).map(srcUrl).filter(u=>u&&!isOwnX(u)).pop()||'';
+const srcBtns=p=>{const o=origSrc(p),x=xPost(p),c=lastChkSrc(p),a=(u,t)=>`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${t}</a>`;return (o?a(o,'Bron voorspelling'):(PUB?'':'<span class="count" style="align-self:center">Bron voorspelling nog niet gevonden</span>'))+(c&&c!==o?a(c,'Bron check'):'')+(x?a(x,'Bekijk op X'):'')};
+function card(p,ro){
+  const v=p.verdict||'open',checks=p.checks||[];
+  return `<article class="card" id="${ro?'pc':'c'}-${esc(p.id)}">
+  <span class="stamp v-${v}">${V[v][0]}</span>
+  <div class="head">${whoLine(p)}
+  <p class="claim">${esc(p.claim)}</p>
+  <div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${origSrc(p)?`<a href="${esc(origSrc(p))}" target="_blank" rel="noopener">${esc(p.outlet)}</a>`:esc(p.outlet)}</span>`:''}${p.targetDate?`<span>Doeldatum ${fmt(p.targetDate)}</span>`:''}<span>${p.nextCheck?`Volgende check <b style="color:${p.nextCheck<=today()?'var(--no)':'inherit'}">${fmt(p.nextCheck)}</b>`:'Afgerond'}</span>${p.recurrence==='yearly'?'<span class="tag">jaarlijkse check</span>':''}${p.by==='scan'?'<span class="tag">auto-scan</span>':''}${p.by==='x-archief'?'<span class="tag">X-archief</span>':''}</div></div>
+  ${p.quote?`<p class="note" style="margin:8px 0 0">“${esc(p.quote)}”</p>`:''}
+  ${(PUB||ro)?`<div class="row">${srcBtns(p)}</div>`:`<div class="row">${srcBtns(p)}</div><div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
+  <details class="dossier"><summary>Dossier, checks en oordeel${checks.length?` (${checks.length})`:''}</summary>${imgCredit(p)}
+   ${p.metric?.label?`<div class="fig" data-fig="${esc(p.id)}" style="height:280px"><svg></svg></div>${chartLegend(p)}<p class="count">${esc(p.metric.label)}${p.metric.unit?' ('+esc(p.metric.unit)+')':''}${p.metric.target!=null?` · voorspelde waarde: ${esc(p.metric.target)}`:''}</p>${credit(p)}`:''}
+   ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${(PUB||ro)?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}</td><td class="v-${c.verdict}"><b>${EMO[c.verdict]}</b>${srcLink(c)}</td><td>${esc(c.value??'')}</td><td>${esc(c.note)}${srcRest(c)?`<br><span class="count">${esc(srcRest(c))}</span>`:''}</td>${(PUB||ro)?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
+   ${(PUB||ro)?(ro&&!PUB?`<div class="row"><button class="ghost" data-open="${esc(p.id)}">Check toevoegen of bewerken</button></div>`:''):`   <h3 style="font-size:17px;margin-top:18px">Nieuwe check</h3>
+   <div class="grid">
+    <label>Datum<input type="date" id="cd-${esc(p.id)}" value="${today()}"></label>
+    <label>Oordeel<select id="cv-${esc(p.id)}">${['tooearly','correct','partial','incorrect'].map(k=>`<option value="${k}">${V[k][1]}</option>`).join('')}</select></label>
+    ${p.metric?.label?`<label>Gemeten stand${p.metric.unit?' ('+esc(p.metric.unit)+')':''}<input id="cm-${esc(p.id)}" inputmode="decimal"></label>`:''}
+   </div>
+   <label style="margin-top:10px">Link naar de bron<input id="cu-${esc(p.id)}" type="url" placeholder="https://… (artikel of cijfers die het oordeel onderbouwen)"></label>
+   <label style="margin-top:10px">Korte toelichting (komt in de tweet)<textarea id="cn-${esc(p.id)}" style="min-height:70px" placeholder="Eén korte zin: wat is er werkelijk gebeurd?"></textarea></label>
+   <div class="row"><button data-check="${esc(p.id)}">Check opslaan</button><button class="ghost" data-ai="${esc(p.id)}" ${sample?'':'hidden'}>Laat Claude een oordeel voorstellen</button><span class="count" id="am-${esc(p.id)}"></span></div>
+   <h3 style="font-size:17px;margin-top:18px">Gegevens bewerken</h3>
+   <div class="grid">
+    ${[['who','Naam'],['role','Functie'],['outlet','Medium'],['sourceUrl','Link naar de originele voorspelling'],['xUrl','Link naar onze X-post'],['saidOn','Gezegd op','date'],['targetDate','Doeldatum','date'],['nextCheck','Volgende check','date'],['topic','Onderwerp'],['img','Afbeelding-URL (https, rechtenvrij; geldt voor alle voorspellingen van deze naam)'],['imgCredit','Maker en licentie van de afbeelding']].map(([f,l,t])=>`<label>${l}<input data-e="${esc(p.id)}" data-f="${f}" type="${t||'text'}" value="${esc(p[f])}"></label>`).join('')}
+   </div>
+   <label style="margin-top:10px">Voorspelling<textarea data-e="${esc(p.id)}" data-f="claim" style="min-height:70px">${esc(p.claim)}</textarea></label>
+   <label style="margin-top:10px">Tweet <span class="count" data-cnt="${esc(p.id)}">${(p.tweet||'').length}/${MAXT}</span><textarea data-e="${esc(p.id)}" data-f="tweet" style="min-height:110px">${esc(p.tweet||tweetFor(p))}</textarea></label>
+   <div class="row"><button data-save="${esc(p.id)}">Wijzigingen opslaan</button><button class="ghost" data-del="${esc(p.id)}">Verwijderen</button></div>`}
+  </details></article>`;
+}
+const nl=v=>(+(+v).toFixed(2)).toLocaleString('nl-NL');
+function niceTicks(lo,hi,n=5){
+  const raw=(hi-lo)/n,mag=10**Math.floor(Math.log10(raw)),f=raw/mag,step=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*mag;
+  const a=Math.floor(lo/step+1e-9)*step,b=Math.ceil(hi/step-1e-9)*step,vals=[];
+  for(let v=a;v<=b+step/2;v+=step)vals.push(+v.toFixed(10));
+  const dec=Math.max(0,-Math.floor(Math.log10(step)+1e-9))+(f>2&&f<=2.5&&step<10?1:0);
+  return{lo:a,hi:b,vals,fmt:v=>v.toLocaleString('nl-NL',{minimumFractionDigits:dec,maximumFractionDigits:dec})};
+}
+function chartPts(p){
+  const hist=((p.metric&&p.metric.history)||[]).filter(h=>h&&h.date&&h.value!==''&&h.value!=null&&!isNaN(+h.value)).map(h=>({d:h.date,v:+h.value}));
+  const hy=new Set(hist.map(h=>h.d.slice(0,4)));
+  const chk=(p.checks||[]).filter(c=>c.value!==''&&c.value!=null&&!isNaN(+c.value)&&!hy.has(c.date.slice(0,4))).map(c=>({d:c.date,v:+c.value}));
+  const pts=hist.concat(chk);
+  if(!hist.length&&p.metric&&p.metric.baseline!=null&&p.metric.baseline!==''&&p.saidOn)pts.push({d:p.saidOn,v:+p.metric.baseline,b:1});
+  return pts.sort((a,b)=>a.d.localeCompare(b.d));
+}
+const yr=d=>{const x=new Date(d+'T12:00:00');return x.getFullYear()+(x-new Date(x.getFullYear()+'-01-01T00:00:00'))/(365.25*864e5)};
+function trendOf(pts){
+  if(pts.length<3)return null;const xs=pts.map(p=>yr(p.d)),ys=pts.map(p=>p.v),n=xs.length;
+  const mx=xs.reduce((a,b)=>a+b)/n,my=ys.reduce((a,b)=>a+b)/n;let sxx=0,sxy=0;
+  for(let i=0;i<n;i++){sxx+=(xs[i]-mx)**2;sxy+=(xs[i]-mx)*(ys[i]-my)}
+  if(!sxx)return null;const k=sxy/sxx;return{k,at:x=>my+k*(x-mx)};
+}
+const RMOTION=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function chart(p,box){
+  box=box||document.querySelector(`[data-fig="${CSS.escape(p.id)}"]`);if(!box)return;
+  let played=RMOTION,tok=0;
+  const s=box.querySelector('svg'),pts=chartPts(p),m=p.metric||{};
+  const tgt=m.target!=null&&m.target!==''?+m.target:null,tr=trendOf(pts);
+  const draw=anim=>{anim=anim===true;const W=s.clientWidth,H=s.clientHeight;if(!W)return;tok++;
+    if(!pts.length){s.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--mute)" font-size="14">Nog geen meetwaarden.${PUB?'':' Voeg een check met stand toe.'}</text>`;return}
+    const said=p.saidOn?yr(p.saidOn):null,routes=(m.routes&&m.routes.length?m.routes:(tgt!=null&&p.targetDate?[{date:p.targetDate,value:tgt,label:m.targetLabel}]:[])).filter(r=>r.date&&r.value!=null&&r.value!=='').map(r=>({x:yr(r.date),v:+r.value,label:r.label})),end=routes.length?Math.max(...routes.map(r=>r.x)):(p.targetDate?yr(p.targetDate):null);
+    const xsAll=pts.map(q=>yr(q.d)).concat(said!=null?[said]:[]).concat(end!=null?[end]:[]);
+    let x0=Math.floor(Math.min(...xsAll))-(said!=null&&Math.min(...pts.map(q=>yr(q.d)))>=said?3:0),x1=Math.ceil(Math.max(...xsAll)+.01);
+    if(x1-x0<4)x1=x0+4;
+    const vs=pts.map(q=>q.v).concat(routes.map(r=>r.v));
+    if(tr&&said!=null){vs.push(tr.at(said));if(end!=null)vs.push(tr.at(end))}
+    let lo=Math.min(...vs),hi=Math.max(...vs);if(lo===hi){lo-=1;hi+=1}{const pad=(hi-lo)*.06;if(lo>=0&&lo-pad<0)lo=0;else lo-=pad;hi+=pad}const tk=niceTicks(lo,hi);lo=tk.lo;hi=tk.hi;
+    const L=Math.max(46,Math.max(...tk.vals.map(v=>tk.fmt(v).length))*6.6+12),R=18,B=30,X=x=>L+(x-x0)/(x1-x0)*(W-L-R),narrow=W<520,unit=m.unit?' '+m.unit:'';
+    const cnt=(d,v,fin)=>`${fin&&!narrow?'laatste meting ':''}${String(d).slice(0,4)}: ${nl(v)}${unit}`;
+    let stack=false;if(said!=null&&pts.length){const lab=`voorspeld ${fmt(p.saidOn)}`.length*6.4,xs=X(said),rt=xs+8+lab<W-R,a0=rt?xs+6:xs-6-lab,a1=rt?xs+6+lab:xs-6,vw=Math.max(...pts.map(q=>cnt(q.d,q.v,true).length))*7.6;stack=a1>W-R-vw-8&&a0<W-R}
+    const T=stack?46:26,Y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
+    const pxYear=(W-L-R)/(x1-x0),step=pxYear>=29?1:pxYear>=15?2:5;
+    let g='';
+    const now=yr(today()),xn=Math.min(Math.max(X(now),L),W-R);
+    g+=`<rect x="${L}" y="${T-6}" width="${xn-L}" height="${H-B-T+6}" fill="var(--deep)" opacity=".6"/>`;
+    if(xn<W-R)g+=`<line x1="${xn}" x2="${xn}" y1="${T-6}" y2="${H-B}" stroke="var(--mute)" stroke-width="1" opacity=".6"/><text x="${xn+4}" y="${H-B-6}" font-size="11" fill="var(--mute)">nu</text>`;
+    let ref=null;if(said!=null){const before=pts.filter(q=>yr(q.d)<=said).pop(),after=pts.find(q=>yr(q.d)>=said);ref=before&&after?(before===after?before.v:before.v+(after.v-before.v)*((said-yr(before.d))/((yr(after.d)-yr(before.d))||1))):(m.baseline!=null&&m.baseline!==''?+m.baseline:null)}
+    for(const v of tk.vals){g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--mute)">${tk.fmt(v)}</text>`}
+    for(let y=x0;y<=x1;y++){const x=X(y);g+=`<line x1="${x}" x2="${x}" y1="${H-B}" y2="${H-B+4}" stroke="var(--mute)"/>`;if((y-x0)%step===0)g+=`<text x="${x}" y="${H-B+17}" text-anchor="middle" font-size="11" fill="var(--mute)">${y}</text>`}
+    if(said!=null){const xs=X(said);g+=`<line x1="${xs}" x2="${xs}" y1="${T-6}" y2="${H-B}" stroke="var(--ink)" stroke-width="1" opacity=".6"/>`;
+      const lab=`voorspeld ${fmt(p.saidOn)}`,right=xs+8+lab.length*6.3<W-R;g+=`<text x="${right?xs+6:xs-6}" y="${T-10}" text-anchor="${right?'start':'end'}" font-size="12" font-weight="600" fill="var(--ink)">${lab}</text>`}
+    const rng=routes.length===2&&Math.abs(routes[0].x-routes[1].x)<.01&&routes[0].v!==routes[1].v;
+    if(rng&&said!=null){const [a,b]=routes;g+=ref!=null?`<polygon points="${X(said)},${Y(ref)} ${X(a.x)},${Y(a.v)} ${X(b.x)},${Y(b.v)}" fill="var(--yel)" opacity=".16"/>`:`<rect x="${X(a.x)-7}" y="${Y(Math.max(a.v,b.v))}" width="14" height="${Math.abs(Y(a.v)-Y(b.v))}" rx="4" fill="var(--yel)" opacity=".22"/>`;
+      routes.forEach(r=>{const up=r.v===Math.max(a.v,b.v);g+=`${ref!=null?`<line x1="${X(said)}" x2="${X(r.x)}" y1="${Y(ref)}" y2="${Y(r.v)}" stroke="var(--yel)" stroke-dasharray="6 5" stroke-width="2"/>`:''}<circle cx="${X(r.x)}" cy="${Y(r.v)}" r="5" fill="none" stroke="var(--yel)" stroke-width="2"/><text x="${X(r.x)-10}" y="${up?Y(r.v)-12:Math.min(Y(r.v)+20,H-B-6)}" text-anchor="end" font-size="12" font-weight="600" fill="var(--yel)" stroke="var(--paper)" stroke-width="4" paint-order="stroke">${W<520?(up?'boven':'onder')+'grens':r.label?esc(r.label):`${up?'bovengrens':'ondergrens'}: ${nl(r.v)}${m.unit?' '+esc(m.unit):''}`}</text>`})}
+    else if(said!=null)routes.forEach((r,i)=>{const op=i?.6:1;g+=`${ref!=null?`<line x1="${X(said)}" x2="${X(r.x)}" y1="${Y(ref)}" y2="${Y(r.v)}" stroke="var(--yel)" stroke-dasharray="${i?'2 5':'6 5'}" stroke-width="2" opacity="${op}"/>`:''}<circle cx="${X(r.x)}" cy="${Y(r.v)}" r="5" fill="none" stroke="var(--yel)" stroke-width="2" opacity="${op}"/><text x="${X(r.x)-10}" y="${!i&&Y(r.v)+18<H-B-(Math.abs(X(r.x)-10-xn)<70?20:4)?Y(r.v)+18:Y(r.v)-12}" text-anchor="end" font-size="12" font-weight="600" fill="var(--yel)" opacity="${op}" stroke="var(--paper)" stroke-width="4" paint-order="stroke">${W<520?Math.floor(r.x):r.label?esc(r.label):`voorspeld: ${nl(r.v)}${m.unit?' '+esc(m.unit):''}`}</text>`});
+    if(tr&&said!=null){const xe=Math.max(end!=null?end:x1,said+1,...pts.map(q=>yr(q.d)));g+=`<line x1="${X(said)}" y1="${Y(tr.at(said))}" x2="${X(xe)}" y2="${Y(tr.at(xe))}" stroke="var(--early)" stroke-width="2" stroke-dasharray="7 5"/><text x="${X(xe)-8}" y="${Y(tr.at(xe))+(tr.at(xe)>tgt?-9:17)}" text-anchor="end" font-size="12" fill="var(--early)" stroke="var(--paper)" stroke-width="4" paint-order="stroke">trend: ${nl(tr.at(xe))}</text>`}
+    const P=pts.map(q=>({x:X(yr(q.d)),y:Y(q.v),v:q.v,d:q.d})),last=P[P.length-1];
+    g+=`<g class="meas"${!played&&!anim?' opacity="0"':''}><polyline fill="none" stroke="var(--ink)" stroke-width="2" points="${P.map(o=>o.x+','+o.y).join(' ')}"/>`+pts.map(q=>`<circle cx="${X(yr(q.d))}" cy="${Y(q.v)}" r="${said!=null&&yr(q.d)>=said?4.5:3}" fill="${q.b?'var(--paper)':'var(--ink)'}" stroke="var(--ink)" stroke-width="1.5"><title>${fmt(q.d)}: ${q.v}</title></circle>`).join('')+`<circle class="head" r="6" fill="var(--ink)" stroke="var(--paper)" stroke-width="2" opacity="0"/><text class="vcount" x="${W-R}" y="${stack?15:T-10}" text-anchor="end" font-size="13" font-weight="700" fill="var(--ink)">${esc(cnt(last.d,last.v,true))}</text></g>`;
+    if(said!=null&&ref!=null)g+=`<circle cx="${X(said)}" cy="${Y(ref)}" r="6.5" fill="var(--yel)" stroke="var(--deep)" stroke-width="2"/>`;
+    g+=`<a href="https://x.com/voorspellingchk" target="_blank" rel="noopener"><text x="${W-4}" y="${H-3}" text-anchor="end" font-size="10" fill="var(--mute)" opacity=".7">@voorspellingchk</text></a>`;
+    s.innerHTML=g;
+    if(anim&&P.length){const my=tok,poly=s.querySelector('.meas polyline'),cs=[...s.querySelectorAll('.meas circle:not(.head)')],hd=s.querySelector('.meas .head'),vc=s.querySelector('.vcount');
+      let ri=-1,fv=P[0].v,dv=P[0].v,ts=0;const xa=P[0].x,xb=last.x,dur=Math.min(3200,Math.max(1300,P.length*170)),t0=performance.now();cs.forEach(c=>c.style.opacity=0);hd.setAttribute('opacity','1');
+      const stp=now=>{if(my!==tok)return;const t=Math.min(1,(now-t0)/dur),e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,xh=xa+(xb-xa)*e;
+        let i=0;while(i<P.length-1&&P[i+1].x<=xh)i++;const a=P[i],b=P[Math.min(i+1,P.length-1)],fr=b.x>a.x?(xh-a.x)/(b.x-a.x):0,yh=a.y+(b.y-a.y)*fr;
+        poly.setAttribute('points',P.slice(0,i+1).map(o=>o.x+','+o.y).concat([xh+','+yh]).join(' '));cs.forEach((c,k)=>c.style.opacity=P[k].x<=xh+.5?1:0);
+        hd.setAttribute('cx',xh);hd.setAttribute('cy',yh);if(i!==ri){ri=i;fv=dv;ts=now}dv=fv+(P[ri].v-fv)*Math.min(1,(now-ts)/280);vc.textContent=cnt(P[ri].d,dv,false);
+        if(t<1||now-ts<280)requestAnimationFrame(stp);else{hd.setAttribute('opacity','0');vc.textContent=cnt(last.d,last.v,true)}};
+      requestAnimationFrame(stp)}};
+  draw();new ResizeObserver(()=>draw()).observe(s);box.closest('details')?.addEventListener('toggle',()=>draw());
+  if(!played){const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&s.clientWidth){played=true;io.disconnect();draw(true)}},{threshold:.35});io.observe(box)}
+}
+const LABEL_SRC=[[/S&P 500/i,'S&P Dow Jones Indices','https://www.spglobal.com/spdji/en/indices/equity/sp-500/'],[/Brent/i,'ICE Brent via Trading Economics','https://tradingeconomics.com/commodity/brent-crude-oil'],[/bitcoin/i,'CoinMarketCap','https://coinmarketcap.com/currencies/bitcoin/'],[/HadCRUT/i,'Met Office HadCRUT5','https://www.metoffice.gov.uk/hadobs/hadcrut5/'],[/NSIDC|sea.ice/i,'NSIDC Sea Ice Index','https://nsidc.org/data/seaice_index'],[/EU real GDP|euro ?area GDP/i,'Eurostat','https://ec.europa.eu/eurostat/databrowser/view/tec00115/default/table'],[/Nvidia/i,'Nvidia investor relations','https://investor.nvidia.com/financial-info/quarterly-results/default.aspx']];
+const dataSrc=p=>{const m=p.metric||{};if(m.source)return m.source;{const l=LABEL_SRC.find(([r])=>r.test(m.label||''));if(l)return l[1]}const k=(m.label||'').match(/\(([^)]+)\)/);if(k&&/[A-Z]{2,}|Met Office|Copernicus|Forbes/.test(k[1]))return k[1].replace(/,.*$/,'').trim();const c=[...(p.checks||[])].reverse().find(c=>c.sources&&c.value!=null&&c.value!=='');return c?c.sources.replace(/https?:\/\/\S+/g,'').replace(/^[\s·,;]+|[\s·,;]+$/g,'').trim():''};
+const SRC_URLS=[[/NSIDC/i,'https://nsidc.org/data/seaice_index'],[/HadCRUT|Met Office/i,'https://www.metoffice.gov.uk/hadobs/hadcrut5/'],[/Copernicus/i,'https://climate.copernicus.eu/'],[/WMO/,'https://wmo.int/'],[/IKNL|Kankerregistratie/i,'https://iknl.nl/nkr-cijfers'],[/Forbes/i,'https://www.forbes.com/real-time-billionaires/'],[/CoinMarketCap/i,'https://coinmarketcap.com/currencies/bitcoin/'],[/KNMI/,'https://www.knmi.nl/'],[/CBS/,'https://www.cbs.nl/nl-nl/cijfers']];
+const dataSrcUrl=(p,s)=>{const m=p.metric||{};if(/^https:\/\//.test(m.sourceUrl||''))return m.sourceUrl;if(!m.source){const l=LABEL_SRC.find(([r])=>r.test(m.label||''));if(l)return l[2]}const hit=SRC_URLS.find(([r])=>r.test(s));if(hit)return hit[1];const c=[...(p.checks||[])].reverse().find(c=>c.value!=null&&c.value!==''&&(c.url||c.sources));return c?srcUrl(c):''};
+const xa=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>`:t;
+const credit=p=>{const s=dataSrc(p),u=s?dataSrcUrl(p,s):'';return `<p class="credit">${s?`Bron data: ${xa(u,esc(s))} · `:''}Grafiek: ${xa('https://x.com/voorspellingchk','@voorspellingchk')} · ${xa('https://voorspellingschecker.nl/','voorspellingschecker.nl')}</p>`};
+const chartLegend=p=>`<div class="legend" style="color:var(--mute);margin-top:8px"><span><span class="dot" style="background:var(--ink)"></span>gemeten</span><span><span class="dot" style="background:var(--yel)"></span>moment van voorspellen (verticale lijn)</span><span><span class="dot" style="background:transparent;border:2px solid var(--yel)"></span>voorspelde route${p.metric&&p.metric.routes&&p.metric.routes.length>1?"s":""} naar de doelwaarde</span><span><span class="dot" style="background:var(--deep);border:1px solid var(--line2)"></span>verleden</span>${trendOf(chartPts(p))?'<span><span class="dot" style="background:var(--early)"></span>trendlijn (alle metingen)</span>':''}</div>`;
+
+/* ---------- overview ---------- */
+const FINAL=['correct','partial','incorrect'];
+const lastCheck=p=>(p.checks||[]).reduce((m,c)=>c.date>m?c.date:m,'');
+const numChecks=p=>(p.checks||[]).filter(c=>c.value!==''&&c.value!=null&&!isNaN(+c.value)).sort((a,b)=>a.date.localeCompare(b.date));
+function tile(title,p,extra='',kicker=''){
+  if(!p)return `<div class="tile"><h3>${title}</h3><p class="note">Nog niets om te tonen.</p></div>`;
+  const v=p.verdict||'open';
+  return `<div class="tile" data-open="${esc(p.id)}"><h3>${title}</h3><span class="stamp v-${v}">${V[v][0]}</span><div class="head">${kicker?`<p class="kicker">${kicker}</p>`:''}${whoLine(p)}<p class="claim">${esc(p.claim)}</p><div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${esc(p.outlet)}</span>`:''}</div></div>${extra}</div>`;
+}
+function verdictBar(list,cls='minibar'){const n={correct:0,partial:0,incorrect:0,tooearly:0,open:0};list.forEach(p=>n[p.verdict||'open']++);const t=list.length||1;return `<div class="${cls}">${['correct','partial','incorrect','tooearly','open'].map(k=>n[k]?`<span title="${V[k][1]}: ${n[k]}" style="width:${n[k]/t*100}%;background:var(${VC[k]})"></span>`:'').join('')}</div>`}
+function track(p){
+  const pts=numChecks(p);if(!pts.length)return null;const last=pts[pts.length-1],m=p.metric||{};
+  if(m.target==null||m.target===''||m.baseline==null||m.baseline===''||!p.targetDate||!p.saidOn)return{last};
+  const t0=+new Date(p.saidOn),t1=+new Date(p.targetDate),f=Math.min(1,Math.max(0,(+new Date(last.date)-t0)/(t1-t0)));
+  const b=+m.baseline,g=+m.target,exp=b+(g-b)*f,prog=(last.value-b)/(g-b);
+  return{last,exp,f,prog,on:Math.sign(g-b)*(last.value-exp)>=0};
+}
+function dash(){
+  if(!items.length){$('#dash').innerHTML='<div class="empty" style="grid-column:1/-1">Nog geen voorspellingen.</div>';return}
+  const T=today(),md=T.slice(5);
+  // newest
+  const newest=items.slice().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')||(b.saidOn||'').localeCompare(a.saidOn||''))[0];
+  // of the day
+  const hist=items.filter(p=>p.saidOn&&p.saidOn>'1900'&&p.saidOn<T);
+  let day=hist.filter(p=>p.saidOn.slice(5)===md),exact=!!day.length;
+  if(!exact){const doy=d=>{const x=new Date('2001-'+d.slice(5)+'T12:00:00');return Math.round((x-new Date('2001-01-01T12:00:00'))/864e5)};const t=doy(T);const dist=p=>{const d=Math.abs(doy(p.saidOn)-t);return Math.min(d,365-d)};const m=Math.min(...hist.map(dist));day=hist.filter(p=>dist(p)===m)}
+  const dayP=day.length?day[+T.slice(8)%day.length]:null;
+  const yrs=dayP?(+T.slice(0,4))-(+dayP.saidOn.slice(0,4)):0;
+  const dayKick=dayP?`${exact?'Vandaag':'Rond deze dag'}, ${yrs} jaar geleden (${fmt(dayP.saidOn)})`:'';
+  // last correct / incorrect
+  const lastOf=v=>items.filter(p=>p.verdict===v&&p.checks?.length).sort((a,b)=>lastCheck(b).localeCompare(lastCheck(a)))[0];
+  const lc=lastOf('correct'),li=lastOf('incorrect');
+  const chkNote=p=>{if(!p)return'';const c=(p.checks||[]).slice().sort((a,b)=>b.date.localeCompare(a.date))[0];return c?`<p class="note" style="margin:10px 0 0">Gecheckt ${fmt(c.date)}: ${esc(c.note)}</p>`:''};
+  // update
+  const ups=items.filter(p=>p.metric&&numChecks(p).length).sort((a,b)=>((FINAL.includes(a.verdict)?1:0)-(FINAL.includes(b.verdict)?1:0))||lastCheck(b).localeCompare(lastCheck(a)));
+  upIdx=((upIdx%ups.length)+ups.length)%(ups.length||1);
+  const up=ups[upIdx];let upExtra='',upStamp=null;
+  if(up){const tr=track(up),u=up.metric.unit?' '+esc(up.metric.unit):'';
+    upExtra=`<div class="fig" data-fig2="${esc(up.id)}" style="height:300px"><svg></svg></div>${chartLegend(up)}<p class="count">${esc(up.metric.label)}${up.metric.target!=null?` · voorspelde waarde ${esc(up.metric.target)}${u}`:''}</p>${credit(up)}`;
+    if(tr&&tr.on!=null&&!FINAL.includes(up.verdict))upStamp=tr.on?['correct','Op schema']:['incorrect','Niet op schema'];
+    const fin=FINAL.includes(up.verdict),vpill=fin?`<span class="pill" style="background:${{correct:'#138a55',incorrect:'#cf3434',partial:'#c96a0c'}[up.verdict]};color:#fff">${V[up.verdict][1]}</span>`:'';
+    if(!tr&&fin)upExtra+=`<div class="row">${vpill}<span>Gecheckt op ${fmt(lastCheck(up))}</span></div>`;
+    if(tr){upExtra+=`<div class="row">${fin?vpill:tr.on!=null?`<span class="pill" style="background:${tr.on?'#138a55':'#cf3434'};color:#fff">${tr.on?'Op schema':'Niet op schema'}</span>`:''}<span>Stand ${fmt(tr.last.date)}: <b>${nl(tr.last.value)}${u}</b>${tr.exp!=null?`. Op schema zou dat ${nl(tr.exp)}${u} zijn. ${tr.prog<0?`De stand beweegt de verkeerde kant op, terwijl ${Math.round(tr.f*100)}% van de tijd verstreken is.`:`${Math.round(tr.prog*100)}% van de weg afgelegd na ${Math.round(tr.f*100)}% van de tijd.`}`:''}</span></div>`}
+    {const t=trendOf(chartPts(up));if(t&&up.targetDate){const v=t.at(yr(up.targetDate));upExtra+=`<p class="note" style="margin:8px 0 0">Trekken we de trend van alle metingen door, dan komt de stand op ${fmt(up.targetDate)} uit op ongeveer <b>${nl(v)}${u}</b>; voorspeld was ${nl(up.metric.target)}${u}.</p>`}}
+    upExtra+=`<div class="row"><button class="ghost" data-up="-1">Vorige</button><button class="ghost" data-up="1">Volgende</button><span class="count">${upIdx+1} van ${ups.length}</span></div>`}
+  // recap
+  const people={};items.forEach(p=>{(people[p.who]=people[p.who]||[]).push(p)});
+  const names=Object.keys(people).sort((a,b)=>people[b].length-people[a].length||a.localeCompare(b));
+  if(!people[recapWho])recapWho=names[0];
+  const R=people[recapWho].slice().sort((a,b)=>(b.saidOn||'').localeCompare(a.saidOn||''));
+  const cnt=k=>R.filter(p=>(p.verdict||'open')===k).length,chk=R.filter(p=>FINAL.includes(p.verdict)).length;
+  const sc=chk?Math.round((cnt('correct')+cnt('partial')/2)/chk*100):null;
+  const recap=`<div class="tile"><h3>Recap per persoon</h3><div class="wholine"><a class="plink" href="${plink(recapWho)}" data-person="${esc(recapWho)}" aria-label="Pagina van ${esc(recapWho)}">${avatar(recapWho,'lg')}</a><select id="recapsel" style="flex:1">${names.map(n=>`<option ${n===recapWho?'selected':''} value="${esc(n)}">${esc(n)} (${people[n].length})</option>`).join('')}</select></div>
+   <div class="score"><span class="big">${sc==null?'—':sc+'%'}</span><span>${cnt('correct')} correct · ${cnt('partial')} deels · ${cnt('incorrect')} niet correct · ${cnt('tooearly')+cnt('open')} nog open</span></div>
+   ${verdictBar(R)}<p class="count" style="margin:6px 0 0">Score = correct + half voor deels correct, gedeeld door het aantal beoordeelde voorspellingen.</p>
+   <ul class="mini">${R.map(p=>`<li data-open="${esc(p.id)}"><span>${fmt(p.saidOn)}</span><b class="v-${p.verdict||'open'}">${V[p.verdict||'open'][0]}</b><span>${esc(p.claim)}</span></li>`).join('')}</ul><p style="margin:10px 0 0"><a class="plink more" href="${plink(recapWho)}" data-person="${esc(recapWho)}">Alle voorspellingen van ${esc(recapWho)} →</a></p></div>`;
+  // topics
+  const byCat={};items.forEach(p=>{(byCat[catOf(p)]=byCat[catOf(p)]||[]).push(p)});
+  const cats=Object.keys(byCat).sort((a,b)=>byCat[b].length-byCat[a].length),mx=Math.max(...cats.map(c=>byCat[c].length));
+  const topics=`<div class="tile"><h3>Voorspellingen per onderwerp</h3>${cats.map(c=>`<div class="catrow" data-cat="${esc(c)}"><span>${c}</span><div style="width:${byCat[c].length/mx*100}%">${verdictBar(byCat[c],'catbar')}</div><span class="n">${byCat[c].length}</span></div>`).join('')}
+   <div class="legend" style="color:var(--mute);margin-top:12px">${['correct','partial','incorrect','tooearly','open'].map(k=>`<span><span class="dot" style="background:var(${VC[k]})"></span>${V[k][0]}</span>`).join('')}</div></div>`;
+  $('#dash').innerHTML=tile('Nieuwste toegevoegde voorspelling',newest)
+    +tile('Laatste correcte voorspelling',lc,chkNote(lc))+tile('Laatste onjuiste voorspelling',li,chkNote(li))
+    +(up?`<div class="tile wide"><h3>Voorspelling-update</h3><span class="stamp v-${upStamp?upStamp[0]:up.verdict||'open'}">${upStamp?upStamp[1]:V[up.verdict||'open'][0]}</span><div class="head">${whoLine(up)}<p class="claim">${esc(up.claim)}</p><div class="meta"><span>Gezegd ${fmt(up.saidOn)}</span>${up.targetDate?`<span>Doeldatum ${fmt(up.targetDate)}</span>`:''}<span><a href="#ledger" data-open="${esc(up.id)}">Open dossier</a></span></div></div>${upExtra}</div>`:'')
+    +recap+topics+tile('Voorspelling van de dag',dayP,'',dayKick);
+  if(up)chart(up,document.querySelector('[data-fig2]'));
+}
+
+/* ---------- calendar ---------- */
+function occurrences(){
+  const out=[],lim=addY(today(),25);
+  items.forEach(p=>{if(!p.nextCheck)return;let d=p.nextCheck,n=0;
+    while(d&&d<=lim&&n<30){out.push({d,p,interim:p.targetDate&&d<p.targetDate});n++;
+      if(p.recurrence==='yearly'&&p.targetDate&&d<p.targetDate){const x=addY(d,1);d=x>p.targetDate?p.targetDate:x}else d=null}});
+  return out.sort((a,b)=>a.d.localeCompare(b.d));
+}
+function cal(){
+  const O=occurrences();if(!O.length){$('#cal').innerHTML='<div class="empty">Nog geen checks gepland.</div>';return}
+  let h='',m='';
+  O.forEach(o=>{const mm=o.d.slice(0,7);if(mm!==m){if(m)h+='</ol>';m=mm;h+=`<h3 class="month">${new Date(mm+'-01T12:00:00').toLocaleDateString('nl-NL',{month:'long',year:'numeric'})}</h3><ol class="cal">`}
+    h+=`<li data-open="${esc(o.p.id)}" tabindex="0"><time style="color:${o.d<today()?'var(--no)':'inherit'}">${new Date(o.d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'short'})}</time><span><b>${esc(o.p.who)}</b>: ${esc(o.p.claim)}</span><span class="tag">${o.interim?'tussentijdse check':'eindcheck'}</span></li>`});
+  $('#cal').innerHTML=h+'</ol>';
+}
+function ics(){
+  const st=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',e=s=>String(s).replace(/[\\;,]/g,m=>'\\'+m).replace(/\n/g,'\\n');
+  return['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Voorspellingschecker//NL','X-WR-CALNAME:Voorspellingschecker',
+   ...occurrences().map((o,i)=>['BEGIN:VEVENT',`UID:${o.p.id}-${o.d}@voorspellingschecker`,`DTSTAMP:${st}`,`DTSTART;VALUE=DATE:${o.d.replace(/-/g,'')}`,`SUMMARY:${e('Check: '+o.p.who+' – '+o.p.claim.slice(0,60))}`,`DESCRIPTION:${e(o.p.claim+(o.p.sourceUrl?'\n'+o.p.sourceUrl:''))}`,'END:VEVENT'].join('\r\n')),'END:VCALENDAR'].join('\r\n');
+}
+
+/* ---------- scanning with Claude ---------- */
+async function scan(){
+  const text=$('#s-text').value.trim();if(!text){toast('Plak eerst een tekst');return}
+  const meta={title:$('#s-title').value,outlet:$('#s-outlet').value,date:$('#s-date').value||today(),url:$('#s-url').value};
+  $('#scan').disabled=true;$('#scanmsg').textContent='Claude leest de tekst…';
+  try{
+    const res=await sample.json(`Je bent redacteur van het X-account "Voorspellingschecker". Zoek in de tekst hieronder uitspraken die als TOETSBARE voorspelling over de toekomst kunnen gelden, gedaan door bekende of gezaghebbende personen (wetenschappers, columnisten, politici, bestuurders, topmensen uit bedrijfsleven of instituten, opiniemakers). Sla vage verwachtingen, beleidsvoornemens zonder toetsbare uitkomst en uitspraken van anonieme personen over.
+Bron: ${JSON.stringify(meta)}. Datum van vandaag: ${today()}.
+Geef ALLEEN een JSON-array terug, leeg als er niets is. Per voorspelling:
+{"who":"naam","role":"functie/kwalificatie kort","quote":"letterlijke kernzin uit de tekst, max 25 woorden","claim":"de voorspelling als één heldere, toetsbare zin in het Nederlands, met wat/wanneer","topic":"onderwerp in 1-3 woorden","saidOn":"YYYY-MM-DD","targetDate":"YYYY-MM-DD of null (als de spreker een jaar noemt: 31 december van dat jaar; 'binnen 5 jaar' = saidOn+5 jaar)","metric":{"label":"meetbare grootheid","unit":"eenheid","baseline":getal of null,"target":getal of null,"source":"waar de meetdata vandaan komt, bv. CBS of NSIDC","sourceUrl":"link naar die dataset of null"} of null als er geen meetbare grootheid is,"tweet":"tweet in het Nederlands, max 250 tekens, neutraal van toon, begint met 🔮, met naam en de voorspelling, zonder hashtags"}
+TEKST:
+${text.slice(0,60000)}`,{modelTier:'complex'});
+    const arr=Array.isArray(res)?res:[];
+    cands=cands.concat(arr.map(c=>({...c,outlet:meta.outlet||meta.title,sourceTitle:meta.title,sourceUrl:meta.url,saidOn:c.saidOn||meta.date,pick:true})));
+    $('#scanmsg').textContent=arr.length?`${arr.length} voorspelling(en) gevonden. Controleer en bewaar.`:'Geen toetsbare voorspellingen gevonden.';
+    candsRender();
+  }catch(e){$('#scanmsg').textContent=e.code==='rate_limited'?'Even te veel verzoeken; probeer het zo opnieuw.':'Scannen lukte niet: '+(e.message||e.code)}
+  $('#scan').disabled=false;
+}
+function candsRender(){
+  $('#cands').innerHTML=cands.map((c,i)=>`<div class="card cand"><label style="display:flex;gap:8px;align-items:center;color:var(--ink);font-weight:600"><input type="checkbox" data-pick="${i}" ${c.pick?'checked':''} style="width:20px;height:20px">Opnemen</label>
+  <div class="grid">${[['who','Naam'],['role','Functie'],['saidOn','Gezegd op','date'],['targetDate','Doeldatum','date'],['outlet','Medium'],['sourceUrl','Link']].map(([f,l,t])=>`<label>${l}<input data-c="${i}" data-f="${f}" type="${t||'text'}" value="${esc(c[f])}"></label>`).join('')}</div>
+  <label style="margin-top:10px">Voorspelling<textarea data-c="${i}" data-f="claim" style="min-height:60px">${esc(c.claim)}</textarea></label>
+  ${c.quote?`<p class="note">“${esc(c.quote)}”</p>`:''}
+  <label style="margin-top:10px">Tweet<textarea data-c="${i}" data-f="tweet" style="min-height:90px">${esc(c.tweet)}</textarea></label></div>`).join('')+
+  (cands.length?`<div class="row"><button id="savec">Bewaar geselecteerde (${cands.filter(c=>c.pick).length})</button><button class="ghost" id="clearc">Wissen</button></div>`:'');
+}
+async function saveCands(){
+  if(!db){toast('Opslaan is hier niet beschikbaar');return}
+  const pick=cands.filter(c=>c.pick&&c.who&&c.claim);
+  for(const c of pick){
+    const p={who:c.who,role:c.role||'',quote:c.quote||'',claim:c.claim,topic:c.topic||'',outlet:c.outlet||'',sourceUrl:c.sourceUrl||'',sourceTitle:c.sourceTitle||'',saidOn:c.saidOn||today(),targetDate:c.targetDate||null,metric:c.metric||null,verdict:'open',checks:[],by:c.by||'manual',createdAt:new Date().toISOString()};
+    Object.assign(p,plan(p));p.tweet=c.tweet||tweetFor(p);
+    p.editedAt=new Date().toISOString();try{await db.collection('predictions').add(p)}catch(e){toast(e.code==='quota_exceeded'?'Database is vol':'Opslaan mislukt');return}
+  }
+  cands=[];candsRender();toast(`${pick.length} opgeslagen`);location.hash='ledger';
+}
+
+/* ---------- edits ---------- */
+const get=id=>items.find(p=>p.id===id);
+async function saveEdits(id){
+  const p=get(id),u={};
+  document.querySelectorAll(`[data-e="${CSS.escape(id)}"]`).forEach(el=>{const v=el.value.trim();if((p[el.dataset.f]??'')!==v)u[el.dataset.f]=v||(el.type==='date'?null:'')});
+  if(!Object.keys(u).length){toast('Geen wijzigingen');return}
+  if(('targetDate' in u||'saidOn' in u)&&!('nextCheck' in u))Object.assign(u,plan({...p,...u}));
+  u.editedAt=new Date().toISOString();try{await db.doc('predictions/'+id).update(u);toast('Opgeslagen')}catch{toast('Opslaan mislukt')}
+}
+async function addCheck(id){
+  const p=get(id),c={date:$('#cd-'+CSS.escape(id)).value||today(),verdict:$('#cv-'+CSS.escape(id)).value,note:$('#cn-'+CSS.escape(id)).value.trim()};
+  const m=$('#cm-'+CSS.escape(id));if(m&&m.value.trim())c.value=+m.value.replace(',','.');
+  const u=$('#cu-'+CSS.escape(id)).value.trim();if(u)c.url=u;
+  c.tweet=verdictTweet(p,c);
+  const checks=(p.checks||[]).concat([c]).sort((a,b)=>a.date.localeCompare(b.date));
+  try{await db.doc('predictions/'+id).update({checks,verdict:c.verdict,nextCheck:nextAfterCheck(p,c.date,c.verdict),lastChecked:c.date,editedAt:new Date().toISOString()});toast('Check opgeslagen — tweet staat in de tabel')}catch{toast('Opslaan mislukt')}
+}
+async function aiVerdict(id){
+  const p=get(id),msg=$('#am-'+CSS.escape(id));msg.textContent='Claude denkt na…';
+  try{
+    const r=await sample.json(`Beoordeel deze voorspelling voor het X-account Voorspellingschecker. Datum vandaag: ${today()}.
+Voorspelling: ${JSON.stringify({who:p.who,role:p.role,claim:p.claim,saidOn:p.saidOn,targetDate:p.targetDate,metric:p.metric,eerdereChecks:p.checks})}
+Aanvullend bewijs van de redactie: ${$('#cn-'+CSS.escape(id)).value||'(geen)'}
+Werk alleen met wat je zeker weet en met het aangeleverde bewijs; als je kennis niet tot vandaag reikt of de doeldatum nog niet voorbij is, kies dan "tooearly" en zeg wat er nodig is om te toetsen.
+De toelichting gaat direct in een tweet, dus houd het kort: ÉÉN korte, krachtige zin in het Nederlands (max 150 tekens) met het belangrijkste feit of getal, gevolgd door " Bron: <korte bronnaam>" als je een betrouwbare bron weet. Niet twijfelen, de voorspelling niet herhalen.
+Geef ALLEEN JSON: {"verdict":"correct|partial|incorrect|tooearly","note":"korte tweet-zin + bron, max 180 tekens","value":getal of null (actuele stand van de meetbare grootheid, alleen als je die zeker weet),"url":"volledige https-link naar de genoemde bron, alleen als je zeker weet dat die bestaat, anders null"}`,{modelTier:'complex'});
+    if(r&&V[r.verdict]){$('#cv-'+CSS.escape(id)).value=r.verdict;$('#cn-'+CSS.escape(id)).value=r.note||'';const m=$('#cm-'+CSS.escape(id));if(m&&r.value!=null)m.value=r.value;if(r.url)$('#cu-'+CSS.escape(id)).value=r.url;msg.textContent='Voorstel ingevuld. Controleer en sla op.'}else msg.textContent='Geen bruikbaar antwoord.';
+  }catch(e){msg.textContent='Lukte niet: '+(e.message||e.code)}
+}
+
+/* ---------- persoon ---------- */
+let personWho='';
+function person(){
+  const who=personWho,R=items.filter(p=>p.who===who).sort((a,b)=>(b.saidOn||'').localeCompare(a.saidOn||''));
+  const back='<p class="backlink"><a href="#ledger">← Alle voorspellingen</a></p>';
+  if(!R.length){$('#person').innerHTML=back+`<div class="empty">${items.length?'Geen voorspellingen gevonden van '+esc(who)+'.':'Laden…'}</div>`;return}
+  const roles=[...new Set(R.map(p=>p.role).filter(Boolean))];
+  const cnt=k=>R.filter(p=>(p.verdict||'open')===k).length,chk=R.filter(p=>FINAL.includes(p.verdict)).length;
+  const sc=chk?Math.round((cnt('correct')+cnt('partial')/2)/chk*100):null;
+  $('#person').innerHTML=back+`<div class="phead">${avatar(who,'xl')}<div><h2>${esc(who)}</h2>${roles.length?`<p class="role">${roles.map(esc).join(' · ')}</p>`:''}</div></div>
+  <div class="tile precap"><h3>Recap</h3><div class="score"><span class="big">${sc==null?'—':sc+'%'}</span><span>${cnt('correct')} correct · ${cnt('partial')} deels · ${cnt('incorrect')} niet correct · ${cnt('tooearly')+cnt('open')} nog open</span></div>
+   ${verdictBar(R)}<p class="count" style="margin:6px 0 0">Score = correct + half voor deels correct, gedeeld door het aantal beoordeelde voorspellingen.</p></div>
+  <h3 class="plisthead">${R.length===1?'1 voorspelling':R.length+' voorspellingen'}</h3>`+R.map(p=>card(p,true)).join('');
+  R.forEach(p=>{if(p.metric?.label)chart(p,$('#person').querySelector(`[data-fig="${CSS.escape(p.id)}"]`))});
+}
+
+/* ---------- routing & events ---------- */
+const VIEWS=PUB?['overzicht','ledger','kalender','over']:['overzicht','ledger','kalender','nieuw','post'];
+/* ---------- post studio (editor only) ---------- */
+let POSTS={},pfilt='agenda',plimit=12;
+const pid=k=>k.replace(/[^\w-]/g,'_');
+const VLABEL={correct:['CORRECT','#3ed68c'],incorrect:['ONJUIST','#ff6b6b'],partial:['DEELS CORRECT','#ff9f43'],tooearly:['TE VROEG','#8fb3ff']};
+const num=v=>{v=+v;return Math.abs(v)>=1000?Math.round(v).toLocaleString('nl-NL'):String(+v.toFixed(2)).replace('.',',')};
+const jubN=p=>/^jubil/.test(p.by||'')&&p.saidOn?Math.round((Date.now()-new Date(p.saidOn+'T12:00:00'))/(365.25*864e5)):0;
+const dlong=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'});
+const dmy=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{month:'long',year:'numeric'});
+const sched=(p,c)=>{if(!c||c.verdict!=='tooearly')return null;const tr=track(p);return tr&&tr.on!=null?(tr.on?'onsched':'offsched'):null};
+VLABEL.onsched=['OP SCHEMA','#3ed68c'];VLABEL.offsched=['NIET OP SCHEMA','#ff6b6b'];
+const vkey=(p,c)=>c?(sched(p,c)||c.verdict):null;
+const vtNoUrl=(p,c)=>{const t=verdictTweet(p,{...c,url:''}),s=sched(p,c);return s?t.replace(EMO.tooearly,s==='onsched'?'🟢 Op schema':'🔴 Niet op schema'):t};
+function postList(){
+  const out=[];
+  items.forEach(p=>{
+    const own=p.tweet&&/^(🔮|📆)/u.test(p.tweet)?p.tweet:null,v=p.verdict||'open',jub=/^jubil/.test(p.by||'');
+    const cs=(p.checks||[]).filter(c=>c.verdict&&c.verdict!=='open').sort((x,y)=>y.date.localeCompare(x.date));
+    if(p.by==='x-archief'){if(cs[0]&&cs[0].date>='2026-11-01')out.push({key:p.id+'~c'+cs[0].date,p,kind:'check',c:cs[0],text:vtNoUrl(p,cs[0]),date:cs[0].date});return}
+    if(jub){const c=cs[0]||null;out.push({key:p.id+'~a',p,kind:'anniversary',c,text:own||(c?`📆 ${jubN(p)} jaar geleden\n\n`+vtNoUrl(p,c):tweetFor(p)),date:(p.createdAt||'').slice(0,10)||p.saidOn||''});return}
+    const a=v==='open'||v==='tooearly'?own||tweetFor(p):null;
+    if(a)out.push({key:p.id+'~a',p,kind:/^📆/u.test(a)?'anniversary':'prediction',text:a,date:(p.createdAt||'').slice(0,10)||p.saidOn||'',c:null});
+    if(cs[0]&&(cs[0].verdict!=='tooearly'||p.metric?.label)){const c=cs[0];out.push({key:p.id+'~c'+c.date,p,kind:'check',c,text:vtNoUrl(p,c),date:c.date})}
+  });
+  return out.sort((x,y)=>y.date.localeCompare(x.date)||x.key.localeCompare(y.key));
+}
+const pst=k=>POSTS[pid(k)]||{};
+const pdone=s=>!!(s.x&&s.bsky&&s.ig);
+const ptext=o=>pst(o.key).text||o.text;
+function preply(o){const s=origSrc(o.p),c=o.kind==='prediction'?'':((o.c&&srcUrl(o.c))||(o.p.checks||[]).map(srcUrl).filter(Boolean).pop()||'');const L=[];if(s)L.push('Bron voorspelling: '+s);if(c&&c!==s)L.push('Bron check: '+c);return `${L.length?L.join('\n')+'\n\n':''}Alle checks: https://voorspellingschecker.nl`}
+
+function voiceText(o){const p=o.p,cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
+  const said=p.saidOn?' in '+dmy(p.saidOn):'';
+  const parts=[];
+  if(o.kind==='anniversary'&&jubN(p))parts.push(jubN(p)+' jaar geleden.');
+  else if(o.kind==='prediction')parts.push('Nieuwe voorspelling.');
+  parts.push(`${p.who}${p.role?', '+p.role+',':''} zei${said}: “${p.claim.replace(/[.\s]+$/,'')}.”`);
+  if(cc&&cc.note)parts.push('En wat gebeurde er? '+cc.note.replace(/\s*Bron:\s*(.+)$/,' Bron: $1.').replace(/\.\.$/,'.'));
+  else if(p.nextCheck)parts.push(`Wij checken dit op ${dlong(p.nextCheck)}.`);
+  if(cc&&VLABEL[vkey(p,cc)])parts.push((sched(p,cc)?'Stand… ':'Oordeel… ')+VLABEL[vkey(p,cc)][0].toLowerCase()+'.');
+  return parts.join('\n\n')}
+const pcap=o=>ptext(o)+'\n\nBron en volledige check: link in bio (voorspellingschecker.nl)';
+const xurl=t=>'https://x.com/intent/post?text='+encodeURIComponent(t);
+const burl=t=>'https://bsky.app/intent/compose?text='+encodeURIComponent(t);
+const graphemes=t=>{try{return [...new Intl.Segmenter().segment(t)].length}catch{return [...t].length}};
+const SLOTS=['08:00','20:30'],ADAYS=14;
+const addD=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+const dayLbl=d=>{const t=today(),w=new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'});return d===t?'Vandaag · '+w:d===addD(t,1)?'Morgen · '+w:w.charAt(0).toUpperCase()+w.slice(1)};
+function agenda(all){
+  const open=all.filter(o=>{const s=pst(o.key);return !s.x&&!s.skip});
+  const fixed=open.filter(o=>pst(o.key).plan),auto=open.filter(o=>!pst(o.key).plan);
+  const rank=o=>o.kind==='check'&&['correct','incorrect','partial'].includes(o.c?.verdict)?0:o.kind==='anniversary'?1:o.kind==='check'?3:2;
+  const by=[0,1,2,3].map(r=>auto.filter(o=>rank(o)===r));const q=[];
+  while(by.some(b=>b.length))for(const b of by)if(b.length)q.push(b.shift());
+  const t=today(),hm=new Date().toTimeString().slice(0,5),days=[];
+  for(let n=0;n<ADAYS;n++){const d=addD(t,n);const fx=fixed.filter(o=>pst(o.key).plan===d).map(o=>({o,fixed:true}));
+    const free=SLOTS.filter((s,i)=>!(n===0&&s<hm)).length-fx.length,ad=[];for(let k=0;k<free&&q.length;k++)ad.push({o:q.shift(),fixed:false});
+    const its=fx.concat(ad);its.forEach((x,i)=>x.time=pst(x.o.key).ptime||SLOTS[Math.min(SLOTS.length-1,(n===0&&hm>SLOTS[0]?1:0)+i)]||SLOTS[SLOTS.length-1]);
+    its.sort((a,b)=>a.time.localeCompare(b.time));days.push({d,its})}
+  const late=fixed.filter(o=>pst(o.key).plan<t);
+  return{days,late,rest:q.length}}
+function pcardHtml(o,ag){const s=pst(o.key),t=ptext(o),k=esc(o.key),kd={prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[o.kind];
+    return `<article class="pcard" data-pk="${k}"><div class="pimg"><canvas width="1080" height="1350" data-pc="${k}"></canvas></div><div class="pbody">
+     <p class="pkind">${ag?`<span class="ptime">${ag.time}</span> `:''}<b>${kd}</b> · ${fmt(o.date)} · ${esc(o.p.who)}${s.skip?' · <i>overgeslagen</i>':''}${ag?(ag.fixed?' · <span class="tag">vastgezet</span>':' · <span class="tag">voorstel</span>'):''}</p>
+     <label>Posttekst <span class="count" data-pn="${k}"></span><textarea data-ptext="${k}" style="min-height:150px">${esc(t)}</textarea></label>
+     <details class="preply"><summary>Eerste reply, met de bronlink</summary><pre>${esc(preply(o))}</pre><button class="ghost" data-pcopy="r:${k}">Reply kopiëren</button></details>
+     <div class="row">
+      <button data-pvid="${k}">Video downloaden</button><button class="ghost" data-pplay="${k}">▶ Afspelen</button><button class="ghost" data-pdl="${k}">Afbeelding downloaden</button><button class="ghost" data-pci="${k}">Afbeelding kopiëren</button>
+     </div>
+     <div class="row">
+      <a class="btn ghost" data-px="${k}" href="${esc(xurl(t))}" target="_blank" rel="noopener">Openen in X ↗</a>
+      <a class="btn ghost" data-pb="${k}" href="${esc(burl(t))}" target="_blank" rel="noopener">Openen in Bluesky ↗</a>
+      <button class="ghost" data-pcopy="i:${k}">Instagram: bijschrift kopiëren</button><button class="ghost" data-pcopy="v:${k}" title="Tekst voor een voice-over in CapCut, TikTok of Instagram">Voice-overtekst kopiëren</button>
+     </div>
+     <div class="pst"><label class="pplan">Gepland op <input type="date" data-pplan="${k}" value="${esc(s.plan||'')}"> <select data-pptime="${k}"><option value="">tijd</option>${['07:30','08:00','12:30','17:00','20:30','21:30'].map(x=>`<option ${s.ptime===x?'selected':''}>${x}</option>`).join('')}</select></label>${[['x','X'],['bsky','Bluesky'],['ig','Instagram']].map(([f,lb])=>`<label><input type="checkbox" data-pmark="${f}|${k}" ${s[f]?'checked':''}> Gepost op ${lb}${s[f]?` <span class="count">${fmt(s[f])}</span>`:''}</label>`).join('')}
+      <button class="ghost" data-pskip="${k}">${s.skip?'Toch tonen':'Overslaan'}</button></div>
+    </div></article>`}
+function post(){
+  const box=$('#posts');if(!box)return;const sw=$('#psound');if(sw)sw.checked=SOUND;const vp=$('#pvopace');if(vp)vp.checked=VOPACE;
+  if(!items.length){box.innerHTML='<div class="empty">Laden…</div>';return}
+  const all=postList();
+  const n=all.filter(o=>{const s=pst(o.key);return !pdone(s)&&!s.skip}).length;
+  $('#pfilters').innerHTML=[['agenda','📅 Agenda'],['todo',`Te posten (${n})`],['done','Gepost'],['all','Alles']].map(([k,t])=>`<button class="chip" aria-pressed="${pfilt===k}" data-pf="${k}">${t}</button>`).join('');
+  let shown=[];
+  if(pfilt==='agenda'){const A=agenda(all);let html=`<div class="agtop"><p class="note" style="margin:0">Twee posts per dag (8.00 en 20.30), afgewisseld: eerst afgeronde checks, dan jubilea, nieuwe voorspellingen en tussenstanden. Een post verdwijnt uit de agenda zodra je "Gepost op X" aanvinkt. Kies zelf een datum om een post vast te zetten.</p><div class="row" style="margin:0"><button class="ghost" data-pfix="1">Voorstellen vastzetten</button><button class="ghost" data-pics="1">Agenda kopiëren (.ics)</button></div></div>`;
+    if(A.late.length){html+=`<h3 class="agday late">Achterstallig</h3>`+A.late.map(o=>{shown.push(o);return pcardHtml(o,{time:pst(o.key).ptime||'',fixed:true})}).join('')}
+    let cnt=0;A.days.forEach(D=>{html+=`<h3 class="agday">${dayLbl(D.d)} <span class="count">${D.its.length?D.its.length+' post'+(D.its.length>1?'s':''):'niets gepland'}</span></h3>`;
+      D.its.forEach(x=>{if(cnt<plimit){shown.push(x.o);html+=pcardHtml(x.o,x)}else html+=`<p class="agmini"><span class="ptime">${x.time}</span> ${esc({prediction:'Nieuwe voorspelling',anniversary:'Jubileum',check:'Check'}[x.o.kind])} · ${esc(x.o.p.who)}</p>`;cnt++})});
+    if(cnt>plimit)html+=`<div class="row" style="justify-content:center"><button class="ghost" data-pmore="1">Meer kaarten tonen</button></div>`;
+    html+=`<p class="note">Daarna staan er nog ${A.rest} posts in de wachtrij.</p>`;box.innerHTML=html;window.__AG=A}
+  else{const L=all.filter(o=>{const s=pst(o.key);return pfilt==='all'?true:pfilt==='done'?pdone(s):!pdone(s)&&!s.skip});shown=L.slice(0,plimit);
+    box.innerHTML=L.length?shown.map(o=>pcardHtml(o)).join('')+(L.length>plimit?`<div class="row" style="justify-content:center"><button class="ghost" data-pmore="1">Meer tonen (nog ${L.length-plimit})</button></div>`:''):`<div class="empty">${pfilt==='done'?'Nog niets gepost.':'Niets te posten. De wekelijkse run op maandagochtend voegt nieuwe posts toe.'}</div>`}
+  shown.forEach(o=>pcount(o.key));
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){io.unobserve(e.target);const o=all.find(x=>x.key===e.target.dataset.pc);if(o)drawCard(o,e.target)}}),{rootMargin:'300px'});
+  box.querySelectorAll('canvas[data-pc]').forEach(c=>io.observe(c));
+}
+function agIcs(){const A=window.__AG;if(!A)return'';const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Voorspellingschecker//Agenda//NL'];const st=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
+  A.days.forEach(D=>D.its.forEach(x=>{const dt=D.d.replace(/-/g,'')+'T'+x.time.replace(':','')+'00';const sm=('Post: '+({prediction:'nieuwe voorspelling',anniversary:'jubileum',check:'check'}[x.o.kind])+' '+x.o.p.who).replace(/[,;]/g,' ');
+    L.push('BEGIN:VEVENT','UID:'+pid(x.o.key)+'-'+D.d+'@voorspellingschecker.nl','DTSTAMP:'+st,'DTSTART;TZID=Europe/Amsterdam:'+dt,'DURATION:PT15M','SUMMARY:'+sm,'DESCRIPTION:'+ptext(x.o).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/([,;])/g,'\\$1'),'END:VEVENT')}));
+  L.push('END:VCALENDAR');return L.join('\r\n')}
+function pcount(k){const t=document.querySelector(`[data-ptext="${CSS.escape(k)}"]`),c=document.querySelector(`[data-pn="${CSS.escape(k)}"]`);if(!t||!c)return;const n=graphemes(t.value);c.textContent=`${n} tekens · X max 280 · Bluesky max 300`;c.classList.toggle('over',n>280)}
+async function psave(k,patch){const id=pid(k),cur=POSTS[id]||{};const nx={...cur,...patch,key:k,updatedAt:new Date().toISOString()};POSTS[id]=nx;try{await db.doc('posts/'+id).set(nx)}catch{toast('Opslaan mislukt')}}
+/* --- image card --- */
+const fontsReady=(async()=>{try{await Promise.all(['700 64px "Space Grotesk"','500 30px "Space Grotesk"','400 30px "IBM Plex Sans"','600 30px "IBM Plex Sans"'].map(f=>document.fonts.load(f)))}catch{}})();
+function wrap(ctx,t,maxW,maxL){const words=String(t).split(/\s+/),lines=[];let cur='';for(const w of words){const n=cur?cur+' '+w:w;if(ctx.measureText(n).width>maxW&&cur){lines.push(cur);cur=w}else cur=n}if(cur)lines.push(cur);if(lines.length>maxL){lines.length=maxL;let l=lines[maxL-1];while(ctx.measureText(l+'…').width>maxW&&l.includes(' '))l=l.replace(/\s+\S*$/,'');lines[maxL-1]=l+'…'}return lines}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+const ease=t=>t<=0?0:t>=1?1:1-Math.pow(1-t,3);
+const clamp=t=>Math.max(0,Math.min(1,t));
+function scene(o,ctx){
+  const p=o.p,W=1080,H=1350,M=72,HD='"Space Grotesk",sans-serif',TX='"IBM Plex Sans",sans-serif';
+  const C={bg:'#0e1a3d',deep:'#0b1430',paper:'#15244f',ink:'#eef1fa',mute:'#a7b1d0',line:'#28396f',yel:'#ffd23f'};
+  const cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
+  const vd=cc&&VLABEL[vkey(p,cc)]?vkey(p,cc):null;
+  const badge=o.kind==='anniversary'?(jubN(p)?jubN(p)+' JAAR GELEDEN':'JUBILEUM'):o.kind==='check'?(cc&&cc.verdict==='tooearly'?'TUSSENSTAND':'VOORSPELLING GECHECKT'):'NIEUWE VOORSPELLING';
+  // ---- layout (fixed, independent of time) ----
+  let y=M+132;const L={};
+  ctx.font=`700 64px ${HD}`;L.who=wrap(ctx,p.who,W-2*M,2).map(l=>{y+=0;const r={t:l,y:y+96};y+=70;return r});y+=96;
+  ctx.font=`400 28px ${TX}`;const sub=[p.role,p.saidOn?'gezegd in '+dmy(p.saidOn):''].filter(Boolean).join(' · ');
+  L.sub=wrap(ctx,sub,W-2*M,2).map(l=>{const r={t:l,y:y-14};y+=38;return r});
+  y+=26;ctx.font=`600 44px ${TX}`;const cy0=y;L.claim=wrap(ctx,'“'+p.claim+'”',W-2*M-28,6).map(l=>{y+=54;return{t:l,y}});L.bar=[cy0+10,y-cy0+4];
+  y+=40;const pts=chartPts(p),m=p.metric||{},note=cc?cc.note||'':'',footH=150,avail=H-footH-y;
+  if(cc&&o.kind==='anniversary'){y+=34;L.wh={y,t:'WAT ER GEBEURDE'};y+=34}
+  if(pts.length>=2&&avail>300){ctx.font=`400 32px ${TX}`;const nl=note?wrap(ctx,note,W-2*M,3):[];const ch=Math.min(440,H-footH-y-(nl.length?nl.length*42+40:0)-20);
+    L.chart={x:M,y,w:W-2*M,h:ch};y+=ch+40;L.note={lines:nl.map(t=>{const r={t,y};y+=42;return r}),font:`400 32px ${TX}`,box:null}}
+  else if(note){ctx.font=`400 36px ${TX}`;const nl=wrap(ctx,note,W-2*M-60,6);const bh=Math.min(H-footH-y-20,60+nl.length*48);L.note={lines:nl.map((t,i)=>({t,y:y+62+i*48})),font:`400 36px ${TX}`,box:[M,y,W-2*M,bh],x:M+30};y+=bh}
+  else if(p.nextCheck){L.due={y}}
+  // stamp position: over the claim, right side
+  const free=H-footH-y;const SP=free>=220?{x:W/2,y:y+free/2,r:-0.12,s:1.25}:{x:W-M-170,y:M+112,r:-0.08,s:.68};
+  // ---- timeline (seconds) ----
+  const wc=t=>String(t||'').split(/\s+/).filter(Boolean).length,VO=typeof VOPACE!=='undefined'&&VOPACE;
+  const nClaim=L.claim.reduce((a,l)=>a+l.t.length,0),tC0=VO?0.8+(o.kind!=='check'?1.2:0)+wc(p.who+' '+(p.role||''))/2.6+1:0.6,tC1=tC0+(VO?wc(p.claim)/2.5:Math.min(3.2,nClaim*0.035));
+  const tG0=tC1+0.3,tG1=L.chart?tG0+2.4:tG0;
+  const nNote=L.note?L.note.lines.reduce((a,l)=>a+l.t.length,0):0,tN0=VO?Math.max(tG1+0.2,tC1+1.4):tG1+0.2,tN1=tN0+(VO&&L.note?L.note.lines.reduce((a,l)=>a+wc(l.t),0)/2.5:Math.min(2.6,nNote*0.022));
+  const tS=tN1+(VO?1.1:0.35),dur=tS+(VO?2.4:3.2);
+  function typed(lines,t0,t1,t,draw){const total=lines.reduce((a,l)=>a+l.t.length,0),n=Math.floor(clamp((t-t0)/(t1-t0||1))*total);let left=n,cur=null;
+    for(const l of lines){if(left<=0)break;const s=l.t.slice(0,left);left-=l.t.length;draw(l,s);cur={l,s}}
+    return n<total&&t>=t0?cur:null}
+  function draw(t){
+    const _cn=t>=tC0?Math.floor(clamp((t-tC0)/(tC1-tC0||1))*nClaim):0,_nn=L.note&&t>=tN0?Math.floor(clamp((t-tN0)/(tN1-tN0||1))*nNote):0;
+    ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.globalAlpha=1;ctx.setLineDash([]);
+    ctx.fillStyle=C.deep;ctx.fillRect(0,0,W,H);
+    const g=ctx.createRadialGradient(W*.85,-80,40,W*.85,-80,900);g.addColorStop(0,'#2a4bd155');g.addColorStop(1,'#0b143000');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    const a0=ease(t/0.5);ctx.globalAlpha=a0;
+    ctx.font=`700 34px ${HD}`;ctx.fillStyle=C.ink;ctx.fillText('Voorspellingschecker',M,M+30);
+    ctx.font=`500 28px ${HD}`;ctx.fillStyle=C.mute;ctx.textAlign='right';ctx.fillText('@voorspellingchk',W-M,M+30);ctx.textAlign='left';
+    ctx.font=`700 34px ${HD}`;const bw=ctx.measureText(badge).width+40;ctx.save();ctx.translate(M,M+132);ctx.rotate(-.03);rr(ctx,0,-42,bw,58,10);ctx.fillStyle=C.yel;ctx.fill();ctx.fillStyle='#0b1430';ctx.fillText(badge,20,0);ctx.restore();
+    ctx.font=`700 64px ${HD}`;ctx.fillStyle=C.ink;L.who.forEach(l=>ctx.fillText(l.t,M,l.y));
+    ctx.font=`400 28px ${TX}`;ctx.fillStyle=C.mute;L.sub.forEach(l=>ctx.fillText(l.t,M,l.y));
+    ctx.globalAlpha=1;
+    // claim typing
+    if(t>=tC0){ctx.fillStyle=C.yel;ctx.fillRect(M,L.bar[0],6,L.bar[1]*ease((t-tC0)/0.4));
+      ctx.font=`600 44px ${TX}`;ctx.fillStyle=C.ink;const cur=typed(L.claim,tC0,tC1,t,(l,s)=>ctx.fillText(s,M+28,l.y));
+      if(cur&&Math.floor(t*3)%2===0){ctx.fillStyle=C.yel;ctx.fillRect(M+28+ctx.measureText(cur.s).width+4,cur.l.y-38,4,46)}}
+    if(L.wh&&t>=tG0){const[vl,vc]=VLABEL[cc.verdict]||['',C.yel];ctx.globalAlpha=ease((t-tG0)/0.4);ctx.font=`700 30px ${HD}`;ctx.fillStyle=C.mute;ctx.fillText(L.wh.t,M,L.wh.y);ctx.globalAlpha=1}
+    if(L.chart&&t>=tG0-0.2)drawMini(ctx,p,pts,L.chart.x,L.chart.y,L.chart.w,L.chart.h,C,HD,TX,clamp((t-tG0)/(tG1-tG0)),ease((t-tG0+0.2)/0.4));
+    if(L.note&&t>=tN0){if(L.note.box){const b=L.note.box;ctx.globalAlpha=ease((t-tN0+0.2)/0.3);rr(ctx,b[0],b[1],b[2],b[3],18);ctx.fillStyle=C.paper;ctx.fill();ctx.globalAlpha=1}
+      ctx.font=L.note.font;ctx.fillStyle=C.ink;typed(L.note.lines,tN0,tN1,t,(l,s)=>ctx.fillText(s,L.note.x||M,l.y))}
+    if(L.due&&t>=tG0){const yy=L.due.y,a=ease((t-tG0)/0.5);ctx.globalAlpha=a;rr(ctx,M,yy+(1-a)*30,W-2*M,190,18);ctx.fillStyle=C.paper;ctx.fill();ctx.font=`500 28px ${HD}`;ctx.fillStyle=C.mute;ctx.fillText('WIJ CHECKEN DIT OP',M+36,yy+66+(1-a)*30);ctx.font=`700 64px ${HD}`;ctx.fillStyle=C.yel;ctx.fillText(dlong(p.nextCheck),M+36,yy+146+(1-a)*30);ctx.globalAlpha=1}
+    // footer
+    ctx.globalAlpha=a0;ctx.fillStyle=C.line;ctx.fillRect(M,H-footH+20,W-2*M,2);ctx.font=`700 34px ${HD}`;ctx.fillStyle=C.yel;ctx.fillText('voorspellingschecker.nl',M,H-M+4);
+    const ds=dataSrc(p);if(ds&&pts.length>=2){ctx.font=`400 24px ${TX}`;ctx.fillStyle=C.mute;ctx.textAlign='right';ctx.fillText(wrap(ctx,'Data: '+ds,480,1)[0],W-M,H-M+2);ctx.textAlign='left'}
+    ctx.globalAlpha=1;
+    // stamp slam
+    if(vd&&t>=tS){const[lab,col]=VLABEL[vd],k=clamp((t-tS)/0.22),sc=k<1?2.6-1.6*ease(k):1+0.06*Math.max(0,1-(t-tS-0.22)/0.25)*Math.sin((t-tS)*60);
+      const shake=k>=1&&t-tS<0.45?(Math.random()-.5)*10:0;
+      ctx.save();ctx.translate(SP.x+shake,SP.y+shake);ctx.rotate(SP.r);ctx.scale(sc*SP.s,sc*SP.s);ctx.globalAlpha=Math.min(1,k*1.4);
+      ctx.font=`700 ${lab.length>12?50:78}px ${HD}`;const tw=ctx.measureText(lab).width,bw=tw+70,bh=lab.length>12?100:128;
+      rr(ctx,-bw/2,-bh/2,bw,bh,16);ctx.fillStyle='#0b1430e6';ctx.fill();ctx.lineWidth=10;ctx.strokeStyle=col;ctx.stroke();
+      rr(ctx,-bw/2+12,-bh/2+12,bw-24,bh-24,10);ctx.lineWidth=3;ctx.stroke();
+      ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(lab,0,4);ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.globalAlpha=1}
+    return{chars:_cn+_nn,claimDone:t>=tC1,stamp:!!vd&&t>=tS}
+  }
+  return{dur,draw};
+}
+async function drawCard(o,cv){await fontsReady;const ctx=cv.getContext('2d'),s=scene(o,ctx);s.draw(s.dur)}
+function drawMini(ctx,p,pts,x,y,w,h,C,HD,TX,prog=1,alpha=1){
+  const m=p.metric||{},rr0=(m.routes||[]).filter(r=>r.date&&r.value!=null&&r.value!==''),band=rr0.length===2&&rr0[0].date===rr0[1].date&&+rr0[0].value!==+rr0[1].value?{x:yr(rr0[0].date),lo:Math.min(+rr0[0].value,+rr0[1].value),hi:Math.max(+rr0[0].value,+rr0[1].value)}:null,tgt=band?{x:band.x,v:band.lo}:m.target!=null&&m.target!==''&&p.targetDate?{x:yr(p.targetDate),v:+m.target}:null;
+  ctx.globalAlpha=alpha;ctx.fillStyle=C.paper;rr(ctx,x,y,w,h,18);ctx.fill();
+  const xs=pts.map(q=>yr(q.d)).concat(tgt?[tgt.x]:[]),vs=pts.map(q=>q.v).concat(tgt?[tgt.v]:[]).concat(band?[band.hi]:[]);
+  let x0=Math.min(...xs),x1=Math.max(...xs);if(x1-x0<1)x1=x0+1;let lo=Math.min(...vs),hi=Math.max(...vs);if(lo===hi){lo--;hi++}const pad=(hi-lo)*.08;lo=lo>=0&&lo-pad<0?0:lo-pad;hi+=pad;const tk=niceTicks(lo,hi,4);lo=tk.lo;hi=tk.hi;
+  ctx.font=`400 20px ${TX}`;const Lx=x+24+Math.max(...tk.vals.map(v=>ctx.measureText(tk.fmt(v)).width))+12,R=x+w-30,T=y+70,B=y+h-46;
+  const X=v=>Lx+(v-x0)/(x1-x0)*(R-Lx),Y=v=>T+(hi-v)/(hi-lo)*(B-T);
+  ctx.strokeStyle=C.line;ctx.lineWidth=2;ctx.fillStyle=C.mute;ctx.textAlign='right';
+  for(const v of tk.vals){ctx.beginPath();ctx.moveTo(Lx,Y(v));ctx.lineTo(R,Y(v));ctx.stroke();ctx.fillText(tk.fmt(v),Lx-10,Y(v)+7)}
+  ctx.textAlign='center';const ys=Math.ceil(x0),ye=Math.floor(x1),st=Math.max(1,Math.ceil((ye-ys+1)/7));for(let yy=ys;yy<=ye;yy+=st)ctx.fillText(String(yy),X(yy),B+32);ctx.textAlign='left';
+  const said=p.saidOn?yr(p.saidOn):null;
+  if(said!=null&&said>=x0&&said<=x1){ctx.strokeStyle=C.ink;ctx.globalAlpha=.5*alpha;ctx.beginPath();ctx.moveTo(X(said),T-6);ctx.lineTo(X(said),B);ctx.stroke();ctx.globalAlpha=alpha}
+  if(tgt){let ref=null;if(said!=null){const b=pts.filter(q=>yr(q.d)<=said).pop();ref=b?b.v:(m.baseline!=null&&m.baseline!==''?+m.baseline:null)}
+    if(band){const xe=X(band.x),yl=Y(band.lo),yh2=Y(band.hi);ctx.fillStyle=C.yel;ctx.globalAlpha=.3*alpha;ctx.beginPath();if(ref!=null&&said!=null){ctx.moveTo(X(said),Y(ref));ctx.lineTo(xe,yh2);ctx.lineTo(xe,yl)}else{ctx.rect(xe-9,yh2,18,yl-yh2)}ctx.closePath();ctx.fill();ctx.globalAlpha=alpha;
+      ctx.strokeStyle=C.yel;ctx.lineWidth=4;if(ref!=null&&said!=null){ctx.setLineDash([14,10]);ctx.beginPath();ctx.moveTo(X(said),Y(ref));ctx.lineTo(xe,yh2);ctx.stroke();ctx.setLineDash([])}
+      ctx.beginPath();ctx.arc(xe,yh2,10,0,7);ctx.stroke();ctx.font=`700 24px ${HD}`;ctx.fillStyle=C.yel;ctx.textAlign=xe>x+w/2?'right':'left';ctx.fillText('bovengrens: '+num(band.hi),xe+(ctx.textAlign==='right'?-18:18),yh2+(yh2<T+40?34:-16));
+      ctx.fillText('ondergrens: '+num(band.lo),xe+(ctx.textAlign==='right'?-18:18),Math.min(yl+46,B-8));ctx.textAlign='left'}
+    ctx.strokeStyle=C.yel;ctx.lineWidth=4;if(ref!=null&&said!=null){ctx.setLineDash([14,10]);ctx.beginPath();ctx.moveTo(X(said),Y(ref));ctx.lineTo(X(tgt.x),Y(tgt.v));ctx.stroke();ctx.setLineDash([])}
+    ctx.beginPath();ctx.arc(X(tgt.x),Y(tgt.v),10,0,7);ctx.stroke();ctx.font=`700 24px ${HD}`;ctx.fillStyle=C.yel;const tl=band?'':'voorspeld: '+num(tgt.v);ctx.textAlign=X(tgt.x)>x+w/2?'right':'left';ctx.fillText(tl,X(tgt.x)+(ctx.textAlign==='right'?-18:18),Y(tgt.v)+(Y(tgt.v)<T+40?34:-16));ctx.textAlign='left'}
+  // measured line, revealed by prog
+  const P=pts.map(q=>({x:X(yr(q.d)),y:Y(q.v),v:q.v,d:q.d})),xh=P[0].x+(P[P.length-1].x-P[0].x)*ease(prog);
+  let i=0;while(i<P.length-1&&P[i+1].x<=xh)i++;const a=P[i],b=P[Math.min(i+1,P.length-1)],fr=b.x>a.x?(xh-a.x)/(b.x-a.x):0,yh=a.y+(b.y-a.y)*fr;
+  ctx.strokeStyle=C.ink;ctx.lineWidth=4;ctx.beginPath();P.slice(0,i+1).forEach((q,k)=>k?ctx.lineTo(q.x,q.y):ctx.moveTo(q.x,q.y));ctx.lineTo(xh,yh);ctx.stroke();
+  ctx.fillStyle=C.ink;P.slice(0,i+1).forEach(q=>{ctx.beginPath();ctx.arc(q.x,q.y,6,0,7);ctx.fill()});
+  if(prog<1){ctx.beginPath();ctx.arc(xh,yh,10,0,7);ctx.fill()}
+  const cp=prog>=1?P[P.length-1]:P[i],unit=m.unit&&m.unit.length<12?' '+m.unit:'',lt=(prog>=1?'laatste ':'')+cp.d.slice(0,4)+': '+num(cp.v)+unit;
+  ctx.font=`700 26px ${HD}`;const lw=ctx.measureText('laatste '+P[P.length-1].d.slice(0,4)+': '+num(Math.max(...P.map(q=>Math.abs(q.v))))+unit).width;ctx.fillStyle=C.ink;ctx.textAlign='right';ctx.fillText(lt,x+w-24,y+40);ctx.textAlign='left';
+  ctx.font=`500 24px ${HD}`;ctx.fillStyle=C.mute;ctx.fillText(wrap(ctx,(m.label||'').replace(/\s*\(.*$/,'')+(m.unit?' ('+m.unit+')':''),w-72-lw,1)[0]||'',x+24,y+40);
+  ctx.globalAlpha=1;
+}
+const cvOf=k=>document.querySelector(`canvas[data-pc="${CSS.escape(k)}"]`);
+async function pblob(k){const cv=cvOf(k),o=postList().find(x=>x.key===k);if(o)await drawCard(o,cv);return new Promise(r=>cv.toBlob(r,'image/png'))}
+/* --- sound effects (Web Audio) --- */
+function sfxKit(ac,dest){const out=ac.createGain();out.gain.value=.55;const comp=ac.createDynamicsCompressor();comp.threshold.value=-10;comp.ratio.value=8;out.connect(comp).connect(dest);
+  const noise=(dur)=>{const b=ac.createBuffer(1,Math.ceil(ac.sampleRate*dur),ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b};
+  const nb=noise(0.6);
+  function burst(t,{dur=.02,f=3000,q=1.2,gain=.5,type='bandpass'}){const s=ac.createBufferSource();s.buffer=nb;s.playbackRate.value=.9+Math.random()*.2;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=ac.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);s.connect(fl).connect(g).connect(out);s.start(t);s.stop(t+dur+.02)}
+  function tone(t,{f0=90,f1=45,dur=.25,gain=.9,type='sine'}){const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=ac.createGain();g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0008,t+dur);o.connect(g).connect(out);o.start(t);o.stop(t+dur+.02)}
+  return{now:()=>ac.currentTime,
+    key(t=ac.currentTime){burst(t,{dur:.018,f:2600+Math.random()*1400,q:1.5,gain:.35+Math.random()*.15});burst(t+.004,{dur:.03,f:220,q:.8,gain:.25,type:'lowpass'})},
+    bell(t=ac.currentTime){tone(t,{f0:2093,f1:2080,dur:.9,gain:.18});tone(t,{f0:4186,f1:4170,dur:.5,gain:.05})},
+    stamp(t=ac.currentTime){burst(t,{dur:.05,f:1800,q:.6,gain:.7});tone(t,{f0:120,f1:42,dur:.35,gain:1});burst(t,{dur:.22,f:380,q:.7,gain:.9,type:'lowpass'})},
+    whoosh(t=ac.currentTime){const s=ac.createBufferSource();s.buffer=nb;const fl=ac.createBiquadFilter();fl.type='bandpass';fl.Q.value=.8;fl.frequency.setValueAtTime(400,t);fl.frequency.exponentialRampToValueAtTime(2400,t+.35);const g=ac.createGain();g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(.25,t+.2);g.gain.exponentialRampToValueAtTime(.001,t+.45);s.connect(fl).connect(g).connect(out);s.start(t);s.stop(t+.5)}
+  };
+}
+function sfxDriver(kit){let lastN=0,lastKey=0,stamped=false,belled=false,whooshed=false;
+  return(st,now)=>{if(!st)return;if(st.chars>lastN){if(now-lastKey>.045){kit.key();lastKey=now}lastN=st.chars}
+    if(st.claimDone&&!belled){belled=true;kit.bell()}
+    if(st.stamp&&!stamped){stamped=true;kit.whoosh();kit.stamp(kit.now()+.2)}}}
+
+let AC=null;
+async function pplay(k){const cv=cvOf(k),o=postList().find(x=>x.key===k);if(!o)return;await fontsReady;const my=cv._play=(cv._play||0)+1,ctx=cv.getContext('2d'),s=scene(o,ctx),t0=performance.now();
+  let drv=null;if(SOUND){try{AC=AC||new AudioContext();AC.resume();drv=sfxDriver(sfxKit(AC,AC.destination))}catch{}}
+  const step=now=>{if(my!==cv._play)return;const t=(now-t0)/1000,st=s.draw(Math.min(t,s.dur));if(drv)drv(st,t);if(t<s.dur)requestAnimationFrame(step)};requestAnimationFrame(step)}
+let SOUND=true,VOPACE=false;try{SOUND=localStorage.getItem('vc-sound')!=='off';VOPACE=localStorage.getItem('vc-vopace')==='on'}catch{}
+const vsup=t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t);
+const VTYPE_AV=window.__forceAV||['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4;codecs=avc1,mp4a.40.2','video/mp4;codecs=avc1.640028,mp4a.40.2'].find(vsup)||'';
+const VTYPE=['video/mp4;codecs=avc1.42E01E','video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'].find(vsup)||'';
+async function pvideo(k,btn){
+  if(!VTYPE){toast('Deze browser kan geen video opnemen');return}
+  const o=postList().find(x=>x.key===k);if(!o)return;await fontsReady;
+  const cv=document.createElement('canvas');cv.width=1080;cv.height=1350;const ctx=cv.getContext('2d'),s=scene(o,ctx);s.draw(0);
+  const vs=cv.captureStream(30);let ac=null,drv=null,st=vs,TYPE=VTYPE;if(SOUND&&!VTYPE_AV)toast('Deze browser kan geen geluid aan MP4 toevoegen; de video wordt zonder geluid opgeslagen. Probeer Chrome of Safari op een computer.');
+  if(SOUND&&VTYPE_AV){TYPE=VTYPE_AV;try{ac=new AudioContext();await ac.resume();const dst=ac.createMediaStreamDestination();drv=sfxDriver(sfxKit(ac,dst));st=new MediaStream([...vs.getVideoTracks(),...dst.stream.getAudioTracks()])}catch{ac=null}}
+  const rec=new MediaRecorder(st,{mimeType:TYPE,videoBitsPerSecond:8e6}),ch=[];rec.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  const done=new Promise(r=>rec.onstop=r);const lbl=btn?btn.textContent:'';if(btn)btn.disabled=true;
+  rec.start(250);const t0=performance.now();
+  await new Promise(res=>{const step=now=>{const t=(now-t0)/1000,ss=s.draw(Math.min(t,s.dur));if(drv)drv(ss,t);if(btn)btn.textContent=`Opnemen… ${Math.ceil(s.dur-t)}s`;if(t<s.dur+0.3)requestAnimationFrame(step);else res()};requestAnimationFrame(step)});
+  rec.stop();await done;st.getTracks().forEach(t=>t.stop());if(ac)ac.close();if(btn){btn.disabled=false;btn.textContent=lbl}
+  const ext=TYPE.includes('mp4')?'mp4':'webm',blob=new Blob(ch,{type:TYPE.split(';')[0]});
+  let dl=null;try{dl=await claude.use('downloads')}catch{}
+  if(dl){try{await dl.save({filename:pid(k)+'.'+ext,data:blob});toast(ext==='mp4'?'Video opgeslagen':'Video opgeslagen als WebM (X wil MP4)')}catch(e){if(e&&e.code!=='declined')toast('Video opslaan mislukt')}return}
+  const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=pid(k)+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);
+}
+async function pdownload(k){const b=await pblob(k);let dl=null;try{dl=await claude.use('downloads')}catch{}if(dl){try{await dl.save({filename:pid(k)+'.png',data:b});toast('Afbeelding opgeslagen')}catch(e){if(e&&e.code!=='declined')toast('Afbeelding opslaan mislukt')}return}const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=pid(k)+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);toast('Afbeelding gedownload')}
+async function pcopyimg(k){try{const b=await pblob(k);await navigator.clipboard.write([new ClipboardItem({'image/png':b})]);toast('Afbeelding gekopieerd; plak hem in de post')}catch{toast('Afbeeldingen kopiëren mag hier niet; gebruik Downloaden')}}
+
+
+function route(){const h=location.hash.slice(1),pv=h.startsWith('persoon/');const v=pv?'persoon':VIEWS.includes(h)?h:'overzicht';
+  VIEWS.concat('persoon').forEach(k=>$('#v-'+k).hidden=k!==v);
+  if(pv){let w=h.slice(8);try{w=decodeURIComponent(w)}catch(e){}const nw=w!==personWho||$('#person').dataset.shown!=='1';personWho=w;person();$('#person').dataset.shown='1';if(nw)requestAnimationFrame(()=>{const y=$('#v-persoon').getBoundingClientRect().top+scrollY-document.querySelector('nav').offsetHeight;scrollTo({top:Math.max(0,y),behavior:'instant'})})}else $('#person').dataset.shown='';
+  document.querySelectorAll('nav a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.v===v));if(v==='kalender')cal();if(v==='post')post()}
+addEventListener('hashchange',route);route();
+{const segs=()=>document.querySelectorAll('[data-theme-set]');const curT=()=>{try{return localStorage.getItem('vc-theme')||'auto'}catch(e){return 'auto'}};
+ const paintSeg=()=>{const c=curT();segs().forEach(b=>b.setAttribute('aria-pressed',b.dataset.themeSet===c))};
+ segs().forEach(b=>b.addEventListener('click',()=>{const t=b.dataset.themeSet;try{t==='auto'?localStorage.removeItem('vc-theme'):localStorage.setItem('vc-theme',t)}catch(e){}if(t==='auto')delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=t;paintSeg()}));paintSeg()}
+function openPred(id){
+  filt='all';q='';cat='';
+  if(location.hash!=='#ledger')history.pushState(null,'','#ledger');
+  route();renderAll();
+  const c=document.getElementById('c-'+id);if(!c)return;
+  c.querySelector('details').open=true;
+  requestAnimationFrame(()=>{const y=c.getBoundingClientRect().top+scrollY-(document.querySelector('nav').offsetHeight+12);scrollTo({top:y,behavior:'instant'});c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),1600)});
+}
+function renderAll(){board();filters();list();if(!$('#v-kalender').hidden)cal();if(!$('#v-post').hidden)post();if(!$('#v-persoon').hidden)person();dash()}
+document.addEventListener('click',e=>{const t=e.target.closest('button,[data-person],[data-open],[data-cat]');if(!t||t.dataset.person!=null)return;const d=t.dataset;
+  if(d.up){upIdx+=+d.up;dash();return}
+  if(d.cat){e.preventDefault();cat=d.cat;filt='all';q='';location.hash='ledger';renderAll();return}
+  if(d.f){filt=d.f;filters();list()}
+  else if(d.copy){copy(get(d.copy).tweet||tweetFor(get(d.copy)))}
+  else if(d.ctw){const[id,i]=d.ctw.split(':');const p=get(id);copy(p.checks[+i].tweet||verdictTweet(p,p.checks[+i]))}
+  else if(d.save)saveEdits(d.save);
+  else if(d.check)addCheck(d.check);
+  else if(d.ai)aiVerdict(d.ai);
+  else if(d.del){if(t.dataset.sure){const id=d.del;db.doc('deleted/'+id).set({id,deletedAt:new Date().toISOString()}).catch(()=>{}).then(()=>db.doc('predictions/'+id).delete()).then(()=>toast('Verwijderd'))}else{t.dataset.sure=1;t.textContent='Klik nogmaals om te verwijderen'}}
+  else if(d.open){e.preventDefault();openPred(d.open)}
+  else if(t.id==='scan')scan();
+  else if(t.id==='manual'){cands.push({who:'',role:'',claim:'',saidOn:today(),targetDate:'',outlet:$('#s-outlet').value,sourceUrl:$('#s-url').value,tweet:'',pick:true});candsRender()}
+  else if(t.id==='savec')saveCands();
+  else if(t.id==='clearc'){cands=[];candsRender()}
+  else if(t.id==='ics')copy(ics());
+});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-pf],[data-pmore],[data-pcopy],[data-pdl],[data-pci],[data-pskip],[data-pfix],[data-pics],[data-pvid],[data-pplay],canvas[data-pc]');if(!t)return;const d=t.dataset;
+  if(d.pf){pfilt=d.pf;plimit=12;post()}
+  else if(d.pmore){plimit+=12;post()}
+  else if(d.pcopy){const[kind,k]=[d.pcopy.slice(0,1),d.pcopy.slice(2)],o=postList().find(x=>x.key===k);if(o)copy(kind==='r'?preply(o):kind==='v'?voiceText(o):pcap(o),kind==='r'?'Reply gekopieerd':kind==='v'?'Voice-overtekst gekopieerd':'Bijschrift gekopieerd')}
+  else if(d.pdl)pdownload(d.pdl);
+  else if(d.pci)pcopyimg(d.pci);
+  else if(d.pvid)pvideo(d.pvid,t);
+  else if(d.pplay)pplay(d.pplay);
+  else if(d.pc)pplay(d.pc);
+  else if(d.pfix){const A=window.__AG;if(A){const w=[];A.days.forEach(D=>D.its.forEach(x=>{if(!x.fixed)w.push(psave(x.o.key,{plan:D.d,ptime:x.time}))}));Promise.all(w).then(()=>{toast(`${w.length} posts vastgezet`);post()})}}
+  else if(d.pics){copy(agIcs(),'Agenda gekopieerd; sla op als .ics en importeer in je agenda')}
+  else if(d.pskip){const s=pst(d.pskip);psave(d.pskip,{skip:!s.skip}).then(post)}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='pvopace'){VOPACE=t.checked;try{localStorage.setItem('vc-vopace',VOPACE?'on':'off')}catch{}}
+  if(t.id==='psound'){SOUND=t.checked;try{localStorage.setItem('vc-sound',SOUND?'on':'off')}catch{}}
+  if(t.dataset.pmark){const[f,k]=[t.dataset.pmark.split('|')[0],t.dataset.pmark.slice(t.dataset.pmark.indexOf('|')+1)];psave(k,{[f]:t.checked?today():null}).then(()=>toast(t.checked?'Gemarkeerd als gepost':'Markering weggehaald'))}
+  if(t.dataset.pplan!=null&&t.dataset.pplan){psave(t.dataset.pplan,{plan:t.value||null}).then(()=>{toast(t.value?'Gepland op '+fmt(t.value):'Planning weggehaald');post()})}
+  if(t.dataset.pptime){psave(t.dataset.pptime,{ptime:t.value||null}).then(post)}
+  if(t.dataset.ptext){const k=t.dataset.ptext,o=postList().find(x=>x.key===k);psave(k,{text:t.value.trim()===o?.text?null:t.value})}
+});
+document.addEventListener('input',e=>{const t=e.target;if(!t.dataset||!t.dataset.ptext)return;const k=t.dataset.ptext;pcount(k);const x=document.querySelector(`[data-px="${CSS.escape(k)}"]`),b=document.querySelector(`[data-pb="${CSS.escape(k)}"]`);if(x)x.href=xurl(t.value);if(b)b.href=burl(t.value)});
+document.addEventListener('keydown',e=>{const t=e.target.closest&&e.target.closest('li[data-open]');if(t&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openPred(t.dataset.open)}});
+document.addEventListener('change',e=>{const t=e.target;if(t.id==='catsel'){cat=t.value;list()}if(t.id==='recapsel'){recapWho=t.value;dash()}});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='q'){q=t.value;list();const n=$('#q');n.focus();n.setSelectionRange(q.length,q.length)}
+  if(t.dataset.c!=null&&t.dataset.f)cands[+t.dataset.c][t.dataset.f]=t.value;
+  if(t.dataset.pick!=null){cands[+t.dataset.pick].pick=t.checked;const b=$('#savec');if(b)b.textContent=`Bewaar geselecteerde (${cands.filter(c=>c.pick).length})`}
+  if(t.dataset.e&&t.dataset.f==='tweet'){const c=document.querySelector(`[data-cnt="${CSS.escape(t.dataset.e)}"]`);c.textContent=t.value.length+'/'+MAXT;c.classList.toggle('over',t.value.length>MAXT)}
+});
+
+/* ---------- licht/donker ---------- */
+board();filters();list();
+const timer=setTimeout(()=>{if(!items.length)$('#list').innerHTML='<div class="empty">De database is nog niet bereikbaar. Probeer het later opnieuw.</div>'},10000);
+const onData=()=>{clearTimeout(timer);buildImgs();const open=[...document.querySelectorAll('details.dossier[open]')].map(x=>x.closest('.card').id);
+    board();list();open.forEach(id=>{const c=document.getElementById(id);if(c)c.querySelector('details').open=true});if(!$('#v-kalender').hidden)cal();if(!$('#v-persoon').hidden)person();if(!$('#v-post').hidden&&!document.activeElement?.dataset?.ptext)post();dash()};
+if(PUB){fetch(PUB.data||'data.json',{cache:'no-cache'}).then(r=>r.json()).then(d=>{items=(d.predictions||d).filter(p=>p&&p.who&&p.claim);onData()}).catch(()=>{clearTimeout(timer);$('#list').innerHTML='<div class="empty">De voorspellingen konden niet worden geladen.</div>'})}
+else{
+claude.use('db').then(d=>{db=d;if(!d){clearTimeout(timer);$('#list').innerHTML='<div class="empty">Opslag is in deze weergave niet beschikbaar. Open de pagina via claude.ai terwijl je bent ingelogd.</div>';return}
+  d.collection('predictions').onSnapshot(s=>{if(!s.metadata.fromCache)clearTimeout(timer);items=s.docs.map(x=>({id:x.id,...x.data()}));onData()},
+   e=>{clearTimeout(timer);$('#list').innerHTML=`<div class="empty">Kon de voorspellingen niet laden (${esc(e.code)}).</div>`});
+d.collection('posts').onSnapshot(s=>{POSTS={};s.docs.forEach(x=>POSTS[x.id]=x.data());if(!$('#v-post').hidden&&!document.activeElement?.dataset?.ptext)post()},()=>{})});
+claude.use('sample').then(s=>{sample=s;if(!s){$('#scan').disabled=true;$('#scanmsg').textContent='Claude is in deze weergave niet beschikbaar; voer voorspellingen handmatig in.'}else list()});
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+[
+ [
+  "    const res=await sample.json(`Je bent redacteur van het X-account \"Voorspellingschecker\". Zoek in de tekst hieronder uitspraken die als TOETSBARE voorspelling over de toekomst kunnen gelden, gedaan door bekende of gezaghebbende personen (wetenschappers, columnisten, politici, bestuurders, topmensen uit bedrijfsleven of instituten, opiniemakers). Sla vage verwachtingen, beleidsvoornemens zonder toetsbare uitkomst en uitspraken van anonieme personen over.",
+  "    const res=await sample.json(`You are the editor of the X account \"Prediction Checker\". In the text below, find statements that count as TESTABLE predictions about the future, made by well-known or authoritative people (scientists, columnists, politicians, executives, leaders of companies or institutions, commentators). Skip vague expectations, policy intentions without a testable outcome, and statements by anonymous people."
+ ],
+ [
+  "Bron: ${JSON.stringify(meta)}. Datum van vandaag: ${today()}.",
+  "Source: ${JSON.stringify(meta)}. Today's date: ${today()}."
+ ],
+ [
+  "Geef ALLEEN een JSON-array terug, leeg als er niets is. Per voorspelling:",
+  "Return ONLY a JSON array, empty if there is nothing. Per prediction:"
+ ],
+ [
+  "{\"who\":\"naam\",\"role\":\"functie/kwalificatie kort\",\"quote\":\"letterlijke kernzin uit de tekst, max 25 woorden\",\"claim\":\"de voorspelling als één heldere, toetsbare zin in het Nederlands, met wat/wanneer\",\"topic\":\"onderwerp in 1-3 woorden\",\"saidOn\":\"YYYY-MM-DD\",\"targetDate\":\"YYYY-MM-DD of null (als de spreker een jaar noemt: 31 december van dat jaar; 'binnen 5 jaar' = saidOn+5 jaar)\",\"metric\":{\"label\":\"meetbare grootheid\",\"unit\":\"eenheid\",\"baseline\":getal of null,\"target\":getal of null,\"source\":\"waar de meetdata vandaan komt, bv. CBS of NSIDC\",\"sourceUrl\":\"link naar die dataset of null\"} of null als er geen meetbare grootheid is,\"tweet\":\"tweet in het Nederlands, max 250 tekens, neutraal van toon, begint met 🔮, met naam en de voorspelling, zonder hashtags\"}",
+  "{\"who\":\"name\",\"role\":\"short role/credential\",\"quote\":\"key sentence verbatim from the text, max 25 words\",\"claim\":\"the prediction as one clear, testable sentence in English, with what/when\",\"topic\":\"topic in 1-3 words\",\"saidOn\":\"YYYY-MM-DD\",\"targetDate\":\"YYYY-MM-DD or null (if the speaker names a year: 31 December of that year; 'within 5 years' = saidOn+5 years)\",\"metric\":{\"label\":\"measurable quantity\",\"unit\":\"unit\",\"baseline\":number or null,\"target\":number or null,\"source\":\"where the measurement data comes from, e.g. NSIDC or BLS\",\"sourceUrl\":\"link to that dataset or null\"} or null if there is no measurable quantity,\"tweet\":\"tweet in English, max 250 characters, neutral tone, with the name and the prediction, no hashtags\"}"
+ ],
+ [
+  "TEKST:",
+  "TEXT:"
+ ],
+ [
+  "    const r=await sample.json(`Beoordeel deze voorspelling voor het X-account Voorspellingschecker. Datum vandaag: ${today()}.",
+  "    const r=await sample.json(`Judge this prediction for the X account Prediction Checker. Today's date: ${today()}."
+ ],
+ [
+  "Voorspelling: ${JSON.stringify({who:p.who,role:p.role,claim:p.claim,saidOn:p.saidOn,targetDate:p.targetDate,metric:p.metric,eerdereChecks:p.checks})}",
+  "Prediction: ${JSON.stringify({who:p.who,role:p.role,claim:p.claim,saidOn:p.saidOn,targetDate:p.targetDate,metric:p.metric,earlierChecks:p.checks})}"
+ ],
+ [
+  "Aanvullend bewijs van de redactie: ${$('#cn-'+CSS.escape(id)).value||'(geen)'}",
+  "Extra evidence from the editors: ${$('#cn-'+CSS.escape(id)).value||'(none)'}"
+ ],
+ [
+  "Werk alleen met wat je zeker weet en met het aangeleverde bewijs; als je kennis niet tot vandaag reikt of de doeldatum nog niet voorbij is, kies dan \"tooearly\" en zeg wat er nodig is om te toetsen.",
+  "Work only with what you know for certain and with the evidence supplied; if your knowledge does not reach today or the target date has not passed, choose \"tooearly\" and say what is needed to test it."
+ ],
+ [
+  "De toelichting gaat direct in een tweet, dus houd het kort: ÉÉN korte, krachtige zin in het Nederlands (max 150 tekens) met het belangrijkste feit of getal, gevolgd door \" Bron: <korte bronnaam>\" als je een betrouwbare bron weet. Niet twijfelen, de voorspelling niet herhalen.",
+  "The note goes straight into a tweet, so write it tweet-style: ONE short, punchy sentence in English (max 150 characters) saying why, with the key fact or number, followed by \" Source: <short source name>\" if you know a reliable source. No hedging, no repetition of the prediction."
+ ],
+ [
+  "Geef ALLEEN JSON: {\"verdict\":\"correct|partial|incorrect|tooearly\",\"note\":\"korte tweet-zin + bron, max 180 tekens\",\"value\":getal of null (actuele stand van de meetbare grootheid, alleen als je die zeker weet),\"url\":\"volledige https-link naar de genoemde bron, alleen als je zeker weet dat die bestaat, anders null\"}`,{modelTier:'complex'});",
+  "Return ONLY JSON: {\"verdict\":\"correct|partial|incorrect|tooearly\",\"note\":\"tweet-style reason + source, max 180 characters\",\"value\":number or null (current value of the measurable quantity, only if you know it for certain),\"url\":\"full https link to the source you name, only if you are certain it exists, else null\"}`,{modelTier:'complex'});"
+ ],
+ [
+  "  <p class=\"note\">Kant-en-klare posts met een geanimeerde video (de voorspelling wordt uitgetypt, de grafiek tekent zichzelf en dan valt het stempel met het oordeel) of een stilstaande afbeelding. Druk op ▶ Afspelen of klik op de afbeelding voor een voorbeeld. Controleer de tekst, download de video of afbeelding, open X of Bluesky met de tekst al ingevuld, voeg de afbeelding toe en druk op Posten. Voor Instagram: download de afbeelding en kopieer het bijschrift. Zet de bronlink in je eerste reply, niet in de post zelf. Vink daarna aan waar je hem gepost hebt.</p>",
+  "  <p class=\"note\">Ready-made posts with an animated video (the claim is typed out, the chart draws itself, then the verdict stamp lands) or a still image. Press ▶ Play or click the picture to preview. Check the text, download the video or image, open X or Bluesky with the text filled in, attach the image and press Post. For Instagram: download the image and copy the caption. Put the source link in your first reply, not in the post itself. Then tick where you posted it.</p>"
+ ],
+ [
+  "const ORG_AC=/^[A-Z0-9&.\\- ]{2,}$|\\b(NOS|ING|ABN|KNMI|RIVM|CPB|CBS|PBL|DNB|IEA|IPCC|COA|SAGE|CDC|IKNL|LCPS|PwC|VN)\\b/;",
+  "const ORG_AC=/^[A-Z0-9&.\\- ]{2,}$|\\b(IMF|IEA|IPCC|WMO|NSIDC|NASA|SAGE|CDC|NHS|UN|EU|ECB|AIMS|BBC|CNN|AP|FT|NYT)\\b/;"
+ ],
+ [
+  "const ORG_W=/planbureau|bureau|bank|instituut|institute|universiteit|university|agentschap|agency|kabinet|regering|overheid|dienst|team|panel|modellen|experts|deskundigen|council|organisatie|comit|centrum|centre|center|economist|telegraaf|spiegel|australian|rabobank|goldman|quantumscape|oxfam|weer\\.nl|met office|politie|weersverwachting|onderzoek|insider/i;",
+  "const ORG_W=/bureau|bank|institute|institution|university|agency|government|department|service|team|panel|models|experts|scientists|council|organi[sz]ation|committee|centre|center|economist|australian|goldman|quantumscape|oxfam|met office|police|research|insider|supercomputer|project|group|odoxa|kpler|fundstrat|times|post|journal|news/i;"
+ ],
+ [
+  "const CATS=[['Corona & gezondheid',/corona|gezondheid|zorg/i],['Klimaat & weer',/klimaat|weer|zee|natuur|water|aardbeving/i],['Energie',/energie/i],['Economie & woningmarkt',/econom|inflatie|woning|beurs|crypto|voedsel|landbouw/i],['Conflicten & geopolitiek',/geopolitiek|veiligheid|oorlog/i],['Politiek & overheid',/politiek|peiling|overheid/i],['Technologie',/technolog|auto|scheepvaart|ict|privacy/i],['Bevolking & migratie',/bevolking|migratie|taal/i],['Media, sport & cultuur',/media|sport|showbizz/i],['Luchtig',/luchtig/i]];",
+  "const CATS=[['Covid & health',/covid|health|care|disease/i],['Climate & weather',/climate|weather|sea|nature|water|earthquake/i],['Energy & oil',/energy|oil|gas/i],['Economy & markets',/econom|inflation|hous|stock|market|crypto|food|farm|bitcoin/i],['Conflict & geopolitics',/geopolit|security|\\bwar\\b|conflict|ukraine|taiwan/i],['Politics & elections',/politic|poll|election|government/i],['Tech & AI',/tech|\\bai\\b|space|car|robot|ship|privacy/i],['Population & migration',/population|migration|language/i],['Sport, media & culture',/sport|football|media|celebr/i],['Just for fun',/fun|lighthearted/i]];"
+ ]
+]

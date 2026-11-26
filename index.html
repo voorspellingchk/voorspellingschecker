@@ -430,9 +430,10 @@ function chart(p,box){
   draw();new ResizeObserver(()=>draw()).observe(s);box.closest('details')?.addEventListener('toggle',()=>draw());
   if(!played){const io=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting)&&s.clientWidth){played=true;io.disconnect();draw(true)}},{threshold:.35});io.observe(box)}
 }
-const dataSrc=p=>{const m=p.metric||{};if(m.source)return m.source;const k=(m.label||'').match(/\(([^)]+)\)/);if(k&&/[A-Z]{2,}|Met Office|Copernicus|Forbes/.test(k[1]))return k[1].replace(/,.*$/,'').trim();const c=[...(p.checks||[])].reverse().find(c=>c.sources&&c.value!=null&&c.value!=='');return c?c.sources.replace(/https?:\/\/\S+/g,'').replace(/^[\s·,;]+|[\s·,;]+$/g,'').trim():''};
+const LABEL_SRC=[[/S&P 500/i,'S&P Dow Jones Indices','https://www.spglobal.com/spdji/en/indices/equity/sp-500/'],[/Brent/i,'ICE Brent via Trading Economics','https://tradingeconomics.com/commodity/brent-crude-oil'],[/bitcoin/i,'CoinMarketCap','https://coinmarketcap.com/currencies/bitcoin/'],[/HadCRUT/i,'Met Office HadCRUT5','https://www.metoffice.gov.uk/hadobs/hadcrut5/'],[/NSIDC|sea.ice/i,'NSIDC Sea Ice Index','https://nsidc.org/data/seaice_index'],[/EU real GDP|euro ?area GDP/i,'Eurostat','https://ec.europa.eu/eurostat/databrowser/view/tec00115/default/table'],[/Nvidia/i,'Nvidia investor relations','https://investor.nvidia.com/financial-info/quarterly-results/default.aspx']];
+const dataSrc=p=>{const m=p.metric||{};if(m.source)return m.source;{const l=LABEL_SRC.find(([r])=>r.test(m.label||''));if(l)return l[1]}const k=(m.label||'').match(/\(([^)]+)\)/);if(k&&/[A-Z]{2,}|Met Office|Copernicus|Forbes/.test(k[1]))return k[1].replace(/,.*$/,'').trim();const c=[...(p.checks||[])].reverse().find(c=>c.sources&&c.value!=null&&c.value!=='');return c?c.sources.replace(/https?:\/\/\S+/g,'').replace(/^[\s·,;]+|[\s·,;]+$/g,'').trim():''};
 const SRC_URLS=[[/NSIDC/i,'https://nsidc.org/data/seaice_index'],[/HadCRUT|Met Office/i,'https://www.metoffice.gov.uk/hadobs/hadcrut5/'],[/Copernicus/i,'https://climate.copernicus.eu/'],[/WMO/,'https://wmo.int/'],[/IKNL|Kankerregistratie/i,'https://iknl.nl/nkr-cijfers'],[/Forbes/i,'https://www.forbes.com/real-time-billionaires/'],[/CoinMarketCap/i,'https://coinmarketcap.com/currencies/bitcoin/'],[/KNMI/,'https://www.knmi.nl/'],[/CBS/,'https://www.cbs.nl/nl-nl/cijfers']];
-const dataSrcUrl=(p,s)=>{const m=p.metric||{};if(/^https:\/\//.test(m.sourceUrl||''))return m.sourceUrl;const hit=SRC_URLS.find(([r])=>r.test(s));if(hit)return hit[1];const c=[...(p.checks||[])].reverse().find(c=>c.value!=null&&c.value!==''&&(c.url||c.sources));return c?srcUrl(c):''};
+const dataSrcUrl=(p,s)=>{const m=p.metric||{};if(/^https:\/\//.test(m.sourceUrl||''))return m.sourceUrl;if(!m.source){const l=LABEL_SRC.find(([r])=>r.test(m.label||''));if(l)return l[2]}const hit=SRC_URLS.find(([r])=>r.test(s));if(hit)return hit[1];const c=[...(p.checks||[])].reverse().find(c=>c.value!=null&&c.value!==''&&(c.url||c.sources));return c?srcUrl(c):''};
 const xa=(u,t)=>u?`<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a>`:t;
 const credit=p=>{const s=dataSrc(p),u=s?dataSrcUrl(p,s):'';return `<p class="credit">${s?`Bron data: ${xa(u,esc(s))} · `:''}Grafiek: ${xa('https://x.com/voorspellingchk','@voorspellingchk')} · ${xa('https://voorspellingschecker.nl/','voorspellingschecker.nl')}</p>`};
 const chartLegend=p=>`<div class="legend" style="color:var(--mute);margin-top:8px"><span><span class="dot" style="background:var(--ink)"></span>gemeten</span><span><span class="dot" style="background:var(--yel)"></span>moment van voorspellen (verticale lijn)</span><span><span class="dot" style="background:transparent;border:2px solid var(--yel)"></span>voorspelde route${p.metric&&p.metric.routes&&p.metric.routes.length>1?"s":""} naar de doelwaarde</span><span><span class="dot" style="background:var(--deep);border:1px solid var(--line2)"></span>verleden</span>${trendOf(chartPts(p))?'<span><span class="dot" style="background:var(--early)"></span>trendlijn (alle metingen)</span>':''}</div>`;
@@ -617,7 +618,7 @@ let POSTS={},pfilt='agenda',plimit=12;
 const pid=k=>k.replace(/[^\w-]/g,'_');
 const VLABEL={correct:['CORRECT','#3ed68c'],incorrect:['ONJUIST','#ff6b6b'],partial:['DEELS CORRECT','#ff9f43'],tooearly:['TE VROEG','#8fb3ff']};
 const num=v=>{v=+v;return Math.abs(v)>=1000?Math.round(v).toLocaleString('nl-NL'):String(+v.toFixed(2)).replace('.',',')};
-const jubN=p=>p.by==='jubileum'&&p.saidOn?Math.round((Date.now()-new Date(p.saidOn+'T12:00:00'))/(365.25*864e5)):0;
+const jubN=p=>/^jubil/.test(p.by||'')&&p.saidOn?Math.round((Date.now()-new Date(p.saidOn+'T12:00:00'))/(365.25*864e5)):0;
 const dlong=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'});
 const dmy=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{month:'long',year:'numeric'});
 const sched=(p,c)=>{if(!c||c.verdict!=='tooearly')return null;const tr=track(p);return tr&&tr.on!=null?(tr.on?'onsched':'offsched'):null};
@@ -627,7 +628,7 @@ const vtNoUrl=(p,c)=>{const t=verdictTweet(p,{...c,url:''}),s=sched(p,c);return 
 function postList(){
   const out=[];
   items.forEach(p=>{
-    const own=p.tweet&&/^(🔮|📆)/u.test(p.tweet)?p.tweet:null,v=p.verdict||'open',jub=p.by==='jubileum';
+    const own=p.tweet&&/^(🔮|📆)/u.test(p.tweet)?p.tweet:null,v=p.verdict||'open',jub=/^jubil/.test(p.by||'');
     const cs=(p.checks||[]).filter(c=>c.verdict&&c.verdict!=='open').sort((x,y)=>y.date.localeCompare(x.date));
     if(p.by==='x-archief'){if(cs[0]&&cs[0].date>='2026-11-01')out.push({key:p.id+'~c'+cs[0].date,p,kind:'check',c:cs[0],text:vtNoUrl(p,cs[0]),date:cs[0].date});return}
     if(jub){const c=cs[0]||null;out.push({key:p.id+'~a',p,kind:'anniversary',c,text:own||(c?`📆 ${jubN(p)} jaar geleden\n\n`+vtNoUrl(p,c):tweetFor(p)),date:(p.createdAt||'').slice(0,10)||p.saidOn||''});return}
