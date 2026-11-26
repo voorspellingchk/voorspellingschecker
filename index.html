@@ -630,7 +630,7 @@ function postList(){
 const pst=k=>POSTS[pid(k)]||{};
 const pdone=s=>!!(s.x&&s.bsky&&s.ig);
 const ptext=o=>pst(o.key).text||o.text;
-function preply(o){const u=(o.c&&srcUrl(o.c))||(o.p.checks||[]).map(srcUrl).filter(Boolean).pop()||o.p.sourceUrl||'';return `${u?'Bron: '+u+'\n\n':''}Alle checks: https://voorspellingschecker.nl`}
+function preply(o){const s=o.p.sourceUrl||'',c=o.kind==='prediction'?'':((o.c&&srcUrl(o.c))||(o.p.checks||[]).map(srcUrl).filter(Boolean).pop()||'');const L=[];if(s)L.push('Bron voorspelling: '+s);if(c&&c!==s)L.push('Bron check: '+c);return `${L.length?L.join('\n')+'\n\n':''}Alle checks: https://voorspellingschecker.nl`}
 
 function voiceText(o){const p=o.p,cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
   const said=p.saidOn?' in '+dmy(p.saidOn):'';
