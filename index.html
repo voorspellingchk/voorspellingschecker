@@ -610,7 +610,10 @@ const num=v=>{v=+v;return Math.abs(v)>=1000?Math.round(v).toLocaleString('nl-NL'
 const jubN=p=>p.by==='jubileum'&&p.saidOn?Math.round((Date.now()-new Date(p.saidOn+'T12:00:00'))/(365.25*864e5)):0;
 const dlong=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'});
 const dmy=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{month:'long',year:'numeric'});
-const vtNoUrl=(p,c)=>verdictTweet(p,{...c,url:''});
+const sched=(p,c)=>{if(!c||c.verdict!=='tooearly')return null;const tr=track(p);return tr&&tr.on!=null?(tr.on?'onsched':'offsched'):null};
+VLABEL.onsched=['OP SCHEMA','#3ed68c'];VLABEL.offsched=['NIET OP SCHEMA','#ff6b6b'];
+const vkey=(p,c)=>c?(sched(p,c)||c.verdict):null;
+const vtNoUrl=(p,c)=>{const t=verdictTweet(p,{...c,url:''}),s=sched(p,c);return s?t.replace(EMO.tooearly,s==='onsched'?'🟢 Op schema':'🔴 Niet op schema'):t};
 function postList(){
   const out=[];
   items.forEach(p=>{
@@ -637,7 +640,7 @@ function voiceText(o){const p=o.p,cc=o.c||(o.kind!=='prediction'?[...(p.checks||
   parts.push(`${p.who}${p.role?', '+p.role+',':''} zei${said}: “${p.claim.replace(/[.\s]+$/,'')}.”`);
   if(cc&&cc.note)parts.push('En wat gebeurde er? '+cc.note.replace(/\s*Bron:\s*(.+)$/,' Bron: $1.').replace(/\.\.$/,'.'));
   else if(p.nextCheck)parts.push(`Wij checken dit op ${dlong(p.nextCheck)}.`);
-  if(cc&&VLABEL[cc.verdict])parts.push('Oordeel… '+VLABEL[cc.verdict][0].toLowerCase()+'.');
+  if(cc&&VLABEL[vkey(p,cc)])parts.push((sched(p,cc)?'Stand… ':'Oordeel… ')+VLABEL[vkey(p,cc)][0].toLowerCase()+'.');
   return parts.join('\n\n')}
 const pcap=o=>ptext(o)+'\n\nBron en volledige check: link in bio (voorspellingschecker.nl)';
 const xurl=t=>'https://x.com/intent/post?text='+encodeURIComponent(t);
@@ -710,8 +713,8 @@ function scene(o,ctx){
   const p=o.p,W=1080,H=1350,M=72,HD='"Space Grotesk",sans-serif',TX='"IBM Plex Sans",sans-serif';
   const C={bg:'#0e1a3d',deep:'#0b1430',paper:'#15244f',ink:'#eef1fa',mute:'#a7b1d0',line:'#28396f',yel:'#ffd23f'};
   const cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
-  const vd=cc&&VLABEL[cc.verdict]?cc.verdict:null;
-  const badge=o.kind==='anniversary'?(jubN(p)?jubN(p)+' JAAR GELEDEN':'JUBILEUM'):o.kind==='check'?'VOORSPELLING GECHECKT':'NIEUWE VOORSPELLING';
+  const vd=cc&&VLABEL[vkey(p,cc)]?vkey(p,cc):null;
+  const badge=o.kind==='anniversary'?(jubN(p)?jubN(p)+' JAAR GELEDEN':'JUBILEUM'):o.kind==='check'?(cc&&cc.verdict==='tooearly'?'TUSSENSTAND':'VOORSPELLING GECHECKT'):'NIEUWE VOORSPELLING';
   // ---- layout (fixed, independent of time) ----
   let y=M+132;const L={};
   ctx.font=`700 64px ${HD}`;L.who=wrap(ctx,p.who,W-2*M,2).map(l=>{y+=0;const r={t:l,y:y+96};y+=70;return r});y+=96;
@@ -725,7 +728,7 @@ function scene(o,ctx){
   else if(note){ctx.font=`400 36px ${TX}`;const nl=wrap(ctx,note,W-2*M-60,6);const bh=Math.min(H-footH-y-20,60+nl.length*48);L.note={lines:nl.map((t,i)=>({t,y:y+62+i*48})),font:`400 36px ${TX}`,box:[M,y,W-2*M,bh],x:M+30};y+=bh}
   else if(p.nextCheck){L.due={y}}
   // stamp position: over the claim, right side
-  const free=H-footH-y;const SP=free>=220?{x:W/2,y:y+free/2,r:-0.12,s:1.25}:{x:W-M-200,y:L.who[0].y-24,r:-0.14,s:.85};
+  const free=H-footH-y;const SP=free>=220?{x:W/2,y:y+free/2,r:-0.12,s:1.25}:{x:W-M-170,y:M+112,r:-0.08,s:.68};
   // ---- timeline (seconds) ----
   const wc=t=>String(t||'').split(/\s+/).filter(Boolean).length,VO=typeof VOPACE!=='undefined'&&VOPACE;
   const nClaim=L.claim.reduce((a,l)=>a+l.t.length,0),tC0=VO?0.8+(o.kind!=='check'?1.2:0)+wc(p.who+' '+(p.role||''))/2.6+1:0.6,tC1=tC0+(VO?wc(p.claim)/2.5:Math.min(3.2,nClaim*0.035));
