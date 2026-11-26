@@ -322,15 +322,20 @@ function list(){
   $('#list').innerHTML=L.length?L.map(p=>card(p)).join(''):`<div class="empty">${items.length?'Niets gevonden met dit filter.':(PUB?'Nog geen voorspellingen.':'Nog geen voorspellingen. Scan een bron via <a href="#nieuw">Bron scannen</a>, of wacht op de wekelijkse automatische scan.')}</div>`;
   L.forEach(p=>chart(p));
 }
+const isOwnX=u=>/x\.com\/voorspellingchk/i.test(u||'');
+const origSrc=p=>p.sourceUrl&&!isOwnX(p.sourceUrl)?p.sourceUrl:'';
+const xPost=p=>p.xUrl||(isOwnX(p.sourceUrl)?p.sourceUrl:'');
+const lastChkSrc=p=>(p.checks||[]).map(srcUrl).filter(u=>u&&!isOwnX(u)).pop()||'';
+const srcBtns=p=>{const o=origSrc(p),x=xPost(p),c=lastChkSrc(p),a=(u,t)=>`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(u)}">${t}</a>`;return (o?a(o,'Bron voorspelling'):(PUB?'':'<span class="count" style="align-self:center">Bron voorspelling nog niet gevonden</span>'))+(c&&c!==o?a(c,'Bron check'):'')+(x?a(x,'Bekijk op X'):'')};
 function card(p,ro){
   const v=p.verdict||'open',checks=p.checks||[];
   return `<article class="card" id="${ro?'pc':'c'}-${esc(p.id)}">
   <span class="stamp v-${v}">${V[v][0]}</span>
   <div class="head">${whoLine(p)}
   <p class="claim">${esc(p.claim)}</p>
-  <div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${p.sourceUrl?`<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.outlet)}</a>`:esc(p.outlet)}</span>`:''}${p.targetDate?`<span>Doeldatum ${fmt(p.targetDate)}</span>`:''}<span>${p.nextCheck?`Volgende check <b style="color:${p.nextCheck<=today()?'var(--no)':'inherit'}">${fmt(p.nextCheck)}</b>`:'Afgerond'}</span>${p.recurrence==='yearly'?'<span class="tag">jaarlijkse check</span>':''}${p.by==='scan'?'<span class="tag">auto-scan</span>':''}${p.by==='x-archief'?'<span class="tag">X-archief</span>':''}</div></div>
+  <div class="meta"><span>Gezegd ${fmt(p.saidOn)}</span>${p.outlet?`<span>${origSrc(p)?`<a href="${esc(origSrc(p))}" target="_blank" rel="noopener">${esc(p.outlet)}</a>`:esc(p.outlet)}</span>`:''}${p.targetDate?`<span>Doeldatum ${fmt(p.targetDate)}</span>`:''}<span>${p.nextCheck?`Volgende check <b style="color:${p.nextCheck<=today()?'var(--no)':'inherit'}">${fmt(p.nextCheck)}</b>`:'Afgerond'}</span>${p.recurrence==='yearly'?'<span class="tag">jaarlijkse check</span>':''}${p.by==='scan'?'<span class="tag">auto-scan</span>':''}${p.by==='x-archief'?'<span class="tag">X-archief</span>':''}</div></div>
   ${p.quote?`<p class="note" style="margin:8px 0 0">“${esc(p.quote)}”</p>`:''}
-  ${(PUB||ro)?`<div class="row">${p.sourceUrl?`<a class="btn ghost" target="_blank" rel="noopener" href="${esc(p.sourceUrl)}">${/x\.com\/voorspellingchk/.test(p.sourceUrl)?'Bekijk op X':'Bron'}</a>`:''}</div>`:`<div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
+  ${(PUB||ro)?`<div class="row">${srcBtns(p)}</div>`:`<div class="row">${srcBtns(p)}</div><div class="tweet" data-tw="${esc(p.id)}">${esc(p.tweet||tweetFor(p))}</div><div class="row"><button class="ghost" data-copy="${esc(p.id)}">Kopieer tweet</button><a class="btn ghost" target="_blank" rel="noopener" href="https://x.com/intent/post?text=${encodeURIComponent(p.tweet||tweetFor(p))}">Plaats op X</a></div>`}
   <details class="dossier"><summary>Dossier, checks en oordeel${checks.length?` (${checks.length})`:''}</summary>${imgCredit(p)}
    ${p.metric?.label?`<div class="fig" data-fig="${esc(p.id)}" style="height:280px"><svg></svg></div>${chartLegend(p)}<p class="count">${esc(p.metric.label)}${p.metric.unit?' ('+esc(p.metric.unit)+')':''}${p.metric.target!=null?` · voorspelde waarde: ${esc(p.metric.target)}`:''}</p>${credit(p)}`:''}
    ${checks.length?`<table class="stack"><thead><tr><th>Datum</th><th>Oordeel</th><th>Stand</th><th>Toelichting</th>${(PUB||ro)?'':'<th></th>'}</tr></thead><tbody>${checks.map((c,i)=>`<tr><td>${fmt(c.date)}</td><td class="v-${c.verdict}"><b>${EMO[c.verdict]}</b>${srcLink(c)}</td><td>${esc(c.value??'')}</td><td>${esc(c.note)}${srcRest(c)?`<br><span class="count">${esc(srcRest(c))}</span>`:''}</td>${(PUB||ro)?'':`<td><button class="chip" data-ctw="${esc(p.id)}:${i}">Tweet</button></td>`}</tr>`).join('')}</tbody></table>`:'<p class="note">Nog geen checks uitgevoerd.</p>'}
@@ -345,7 +350,7 @@ function card(p,ro){
    <div class="row"><button data-check="${esc(p.id)}">Check opslaan</button><button class="ghost" data-ai="${esc(p.id)}" ${sample?'':'hidden'}>Laat Claude een oordeel voorstellen</button><span class="count" id="am-${esc(p.id)}"></span></div>
    <h3 style="font-size:17px;margin-top:18px">Gegevens bewerken</h3>
    <div class="grid">
-    ${[['who','Naam'],['role','Functie'],['outlet','Medium'],['sourceUrl','Link'],['saidOn','Gezegd op','date'],['targetDate','Doeldatum','date'],['nextCheck','Volgende check','date'],['topic','Onderwerp'],['img','Afbeelding-URL (https, rechtenvrij; geldt voor alle voorspellingen van deze naam)'],['imgCredit','Maker en licentie van de afbeelding']].map(([f,l,t])=>`<label>${l}<input data-e="${esc(p.id)}" data-f="${f}" type="${t||'text'}" value="${esc(p[f])}"></label>`).join('')}
+    ${[['who','Naam'],['role','Functie'],['outlet','Medium'],['sourceUrl','Link naar de originele voorspelling'],['xUrl','Link naar onze X-post'],['saidOn','Gezegd op','date'],['targetDate','Doeldatum','date'],['nextCheck','Volgende check','date'],['topic','Onderwerp'],['img','Afbeelding-URL (https, rechtenvrij; geldt voor alle voorspellingen van deze naam)'],['imgCredit','Maker en licentie van de afbeelding']].map(([f,l,t])=>`<label>${l}<input data-e="${esc(p.id)}" data-f="${f}" type="${t||'text'}" value="${esc(p[f])}"></label>`).join('')}
    </div>
    <label style="margin-top:10px">Voorspelling<textarea data-e="${esc(p.id)}" data-f="claim" style="min-height:70px">${esc(p.claim)}</textarea></label>
    <label style="margin-top:10px">Tweet <span class="count" data-cnt="${esc(p.id)}">${(p.tweet||'').length}/${MAXT}</span><textarea data-e="${esc(p.id)}" data-f="tweet" style="min-height:110px">${esc(p.tweet||tweetFor(p))}</textarea></label>
@@ -635,7 +640,7 @@ function postList(){
 const pst=k=>POSTS[pid(k)]||{};
 const pdone=s=>!!(s.x&&s.bsky&&s.ig);
 const ptext=o=>pst(o.key).text||o.text;
-function preply(o){const s=o.p.sourceUrl||'',c=o.kind==='prediction'?'':((o.c&&srcUrl(o.c))||(o.p.checks||[]).map(srcUrl).filter(Boolean).pop()||'');const L=[];if(s)L.push('Bron voorspelling: '+s);if(c&&c!==s)L.push('Bron check: '+c);return `${L.length?L.join('\n')+'\n\n':''}Alle checks: https://voorspellingschecker.nl`}
+function preply(o){const s=origSrc(o.p),c=o.kind==='prediction'?'':((o.c&&srcUrl(o.c))||(o.p.checks||[]).map(srcUrl).filter(Boolean).pop()||'');const L=[];if(s)L.push('Bron voorspelling: '+s);if(c&&c!==s)L.push('Bron check: '+c);return `${L.length?L.join('\n')+'\n\n':''}Alle checks: https://voorspellingschecker.nl`}
 
 function voiceText(o){const p=o.p,cc=o.c||(o.kind!=='prediction'?[...(p.checks||[])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null);
   const said=p.saidOn?' in '+dmy(p.saidOn):'';
