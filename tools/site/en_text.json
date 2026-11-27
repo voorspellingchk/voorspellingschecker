@@ -11,7 +11,6 @@
  "Hoe wij checken": "How we check",
  "Elke voorspelling krijgt een checkdatum. Loopt een voorspelling langer dan twee jaar, dan komt er elk jaar een tussentijdse check bij tot de doeldatum.": "Every prediction gets a check date. If a prediction runs for more than two years, it also gets a yearly interim check until its target date.",
  "De Voorspellingschecker legt voorspellingen van wetenschappers, politici, columnisten, bestuurders, planbureaus en andere bekende stemmen vast op het moment dat ze worden gedaan. Daarbij noteren we wie het zei, wanneer, waar en een link naar de bron. Elke voorspelling krijgt een checkdatum. Loopt een voorspelling langer dan twee jaar, dan kijken we elk jaar hoe het ervoor staat, waar mogelijk met een grafiek.": "Prediction Checker records predictions by scientists, politicians, columnists, executives, forecasters and other well-known voices at the moment they are made. We note who said it, when, where, and a link to the source. Every prediction gets a check date. If a prediction runs for more than two years, we look at how it is doing every year, with a chart where possible.",
- "De voorspelde uitkomst is uitgekomen. Afwijkingen van 10 à 20% rekenen we niet fout.": "The predicted outcome happened. We don't count deviations of 10 to 20% as wrong.",
  "Deels": "Partly",
  "De kern klopt, maar een deel niet: bijvoorbeeld de richting wel, de omvang of het moment niet.": "The core is right but part of it isn't: the direction, say, but not the size or the timing.",
  "Onjuist": "Wrong",
@@ -184,5 +183,8 @@
  "Reply gekopieerd": "Reply copied",
  "Voice-overtekst gekopieerd": "Voice-over text copied",
  "Bijschrift gekopieerd": "Caption copied",
- "Markering weggehaald": "Unmarked"
+ "Markering weggehaald": "Unmarked",
+ "De voorspelde uitkomst is uitgekomen, met een afwijking van hooguit 5%.": "The predicted outcome happened, with a deviation of at most 5%.",
+ "Een afwijking van meer dan 5% en hooguit 20% rekenen we ook als deels.": "A deviation of more than 5% and at most 20% also counts as partly.",
+ "De uitkomst wijkt duidelijk af van wat werd voorspeld: meer dan 20%.": "The outcome clearly differs from what was predicted: by more than 20%."
 }
