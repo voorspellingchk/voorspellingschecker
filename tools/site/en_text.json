@@ -184,7 +184,19 @@
  "Voice-overtekst gekopieerd": "Voice-over text copied",
  "Bijschrift gekopieerd": "Caption copied",
  "Markering weggehaald": "Unmarked",
- "De voorspelde uitkomst is uitgekomen, met een afwijking van hooguit 5%.": "The predicted outcome happened, with a deviation of at most 5%.",
- "Een afwijking van meer dan 5% en hooguit 20% rekenen we ook als deels.": "A deviation of more than 5% and at most 20% also counts as partly.",
- "De uitkomst wijkt duidelijk af van wat werd voorspeld: meer dan 20%.": "The outcome clearly differs from what was predicted: by more than 20%."
+ "De voorspelde uitkomst is uitgekomen, binnen de grenzen hieronder.": "The predicted outcome happened, within the limits below.",
+ "Hoe we afwijkingen meten": "How we measure deviations",
+ "Hoe we een afwijking meten hangt af van het soort voorspelling:": "How we measure a deviation depends on the kind of prediction:",
+ "Aantallen en bedragen": "Counts and amounts",
+ ": tot 5% afwijking is correct, tot 20% deels, daarboven onjuist.": ": up to 5% off is correct, up to 20% partly, more than that wrong.",
+ "Percentages": "Percentages",
+ ", zoals inflatie of een aandeel: we tellen in procentpunten. Tot 1 procentpunt is correct, tot 3 deels, daarboven onjuist.": ", such as inflation or a share: we count in percentage points. Up to 1 point off is correct, up to 3 partly, more than that wrong.",
+ "Groei of daling vanaf een startpunt": "Growth or decline from a starting point",
+ ": we vergelijken de voorspelde verandering met de werkelijke. Tot 10% verschil is correct, tot een derde deels, daarboven onjuist.": ": we compare the predicted change with the actual change. Up to 10% off is correct, up to a third partly, more than that wrong.",
+ "Wereldtemperatuur": "Global temperature",
+ ": tot 0,1 graad is correct, tot 0,25 graad deels.": ": up to 0.1 °C off is correct, up to 0.25 °C partly.",
+ "Een moment": "A point in time",
+ ", zoals \"in 2029\": tot 10% van de looptijd ernaast is correct, tot een kwart deels.": ", such as \"in 2029\": off by up to 10% of the time span is correct, up to a quarter partly.",
+ "Marges": "Ranges",
+ ": binnen de voorspelde marge is correct. Daarbuiten meten we vanaf de dichtstbijzijnde grens. Bij \"meer dan\" of \"minder dan\" is het correct als de grens gehaald wordt.": ": inside the predicted range is correct. Outside it, we measure from the nearest end. For \"more than\" or \"less than\", it is correct if the threshold is met."
 }
